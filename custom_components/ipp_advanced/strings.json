@@ -49,9 +49,13 @@
         "state": {
           "idle": "Leerlauf",
           "printing": "Druckt",
-          "stopped": "Gestoppt",
-          "offline_cached": "Offline (zwischengespeichert)"
+          "stopped": "Gestoppt"
         }
+      }
+    },
+    "binary_sensor": {
+      "reachable": {
+        "name": "Erreichbar"
       }
     }
   }

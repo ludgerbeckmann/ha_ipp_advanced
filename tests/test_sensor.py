@@ -88,12 +88,15 @@ def test_state_sensor_reports_live_state():
     assert sensor.native_value == "printing"
 
 
-def test_state_sensor_reports_offline_cached_when_stale():
+def test_state_sensor_reports_real_state_even_when_stale():
+    # Seit der Aufteilung in einen separaten "Erreichbar"-Binärsensor
+    # (binary_sensor.py) zeigt dieser Sensor immer den echten IPP-Status -
+    # live oder zwischengespeichert macht dafuer keinen Unterschied mehr.
     printer = _make_printer(state="idle")
     coordinator = _make_coordinator(printer, last_update_success=False)
     sensor = IPPAdvancedPrinterStateSensor(coordinator, _make_entry())
 
-    assert sensor.native_value == "offline_cached"
+    assert sensor.native_value == "idle"
 
 
 def test_state_sensor_exposes_state_reasons():

@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from .const import CONF_BASE_PATH, DEFAULT_BASE_PATH, DEFAULT_SCAN_INTERVAL
 from .coordinator import IPPAdvancedDataUpdateCoordinator
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

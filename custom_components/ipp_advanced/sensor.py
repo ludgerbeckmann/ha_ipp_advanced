@@ -3,15 +3,12 @@ from __future__ import annotations
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_SSL
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
 from .coordinator import IPPAdvancedDataUpdateCoordinator
+from .entity import IPPAdvancedBaseEntity
 
 
 async def async_setup_entry(
@@ -32,46 +29,6 @@ async def async_setup_entry(
         entities.append(IPPAdvancedMarkerSensor(coordinator, entry, marker.marker_id))
 
     async_add_entities(entities)
-
-
-class IPPAdvancedBaseEntity(CoordinatorEntity[IPPAdvancedDataUpdateCoordinator]):
-    """Gemeinsame Basis für alle Entities dieser Integration."""
-
-    _attr_has_entity_name = True
-
-    def __init__(
-        self,
-        coordinator: IPPAdvancedDataUpdateCoordinator,
-        entry: ConfigEntry,
-    ) -> None:
-        super().__init__(coordinator)
-        self._entry = entry
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        printer = self.coordinator.data.printer
-        scheme = "https" if self._entry.data.get(CONF_SSL) else "http"
-        host = self._entry.data[CONF_HOST]
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._entry.entry_id)},
-            name=printer.info.name if printer else self._entry.title,
-            manufacturer=printer.info.manufacturer if printer else None,
-            model=printer.info.model if printer else None,
-            # Zeigt Host/IP-Adresse als klickbaren Link auf der Geräteseite an
-            # (HA hat kein eigenes "IP-Adresse"-Textfeld dort). Bewusst ohne den
-            # IPP-Port (meist 631) - das eingebettete Web-Interface der meisten
-            # Drucker läuft auf dem Standard-HTTP(S)-Port.
-            configuration_url=f"{scheme}://{host}/",
-            sw_version=printer.info.version if printer else None,
-            serial_number=printer.info.serial if printer else None,
-        )
-
-    @property
-    def available(self) -> bool:
-        # Diese Integration meldet Entities praktisch immer als verfügbar,
-        # solange wir jemals erfolgreich Daten gelesen haben - das ist der
-        # ganze Sinn der "Persistent"-Variante.
-        return self.coordinator.data.available
 
 
 class IPPAdvancedMarkerSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEntity):
@@ -151,7 +108,7 @@ class IPPAdvancedPrinterStateSensor(IPPAdvancedBaseEntity, RestoreEntity, Sensor
     # Rohwerte, die native_value liefern kann - Home Assistant übersetzt diese
     # über strings.json/translations/*.json (entity.sensor.printer_state.state.*)
     # automatisch in die jeweilige Sprache der Oberfläche.
-    _attr_options = ["idle", "printing", "stopped", "offline_cached"]
+    _attr_options = ["idle", "printing", "stopped"]
 
     def __init__(
         self,
@@ -171,14 +128,9 @@ class IPPAdvancedPrinterStateSensor(IPPAdvancedBaseEntity, RestoreEntity, Sensor
     def native_value(self) -> str | None:
         printer = self.coordinator.data.printer
         if printer is not None:
-            # Wenn der Coordinator gerade auf zwischengespeicherte Werte
-            # zurückgefallen ist, weisen wir das hier explizit aus, statt
-            # einfach "idle" vorzugaukeln. Achtung: coordinator.data.last_update_success
-            # (unser eigenes Feld) statt coordinator.last_update_success (das
-            # eingebaute Coordinator-Flag, das wegen des bewussten "kein raise" bei
-            # zwischengespeicherten Werten nie False wird).
-            if not self.coordinator.data.last_update_success:
-                return "offline_cached"
+            # Zeigt immer den zuletzt bekannten echten IPP-Status - ob das
+            # gerade live oder zwischengespeichert ist, sagt der separate
+            # "Erreichbar"-Binärsensor (binary_sensor.py), nicht dieser Sensor.
             return printer.state.printer_state
         return self._restored_value
 
