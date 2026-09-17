@@ -30,6 +30,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         scan_interval=entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
     )
 
+    # Zuletzt gespeicherten Druckerzustand laden, BEVOR der erste Poll
+    # versucht wird - sonst würde ein Neustart bei zufällig gerade
+    # ausgeschaltetem Drucker den Cache verlieren und "Einrichtungsfehler,
+    # wird erneut versucht" auslösen, obwohl der Drucker vor dem Neustart
+    # längst erfolgreich ausgelesen wurde (siehe coordinator.py).
+    await coordinator.async_load_cached_printer()
     await coordinator.async_config_entry_first_refresh()
 
     entry.runtime_data = coordinator
