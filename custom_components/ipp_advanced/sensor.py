@@ -62,6 +62,8 @@ class IPPAdvancedBaseEntity(CoordinatorEntity[IPPAdvancedDataUpdateCoordinator])
             # IPP-Port (meist 631) - das eingebettete Web-Interface der meisten
             # Drucker läuft auf dem Standard-HTTP(S)-Port.
             configuration_url=f"{scheme}://{host}/",
+            sw_version=printer.info.version if printer else None,
+            serial_number=printer.info.serial if printer else None,
         )
 
     @property
@@ -76,6 +78,7 @@ class IPPAdvancedMarkerSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEntity
     """Sensor für ein einzelnes Verbrauchsmaterial (z.B. Toner Schwarz)."""
 
     _attr_native_unit_of_measurement = "%"
+    _attr_icon = "mdi:water"
 
     def __init__(
         self,
@@ -143,6 +146,7 @@ class IPPAdvancedPrinterStateSensor(IPPAdvancedBaseEntity, RestoreEntity, Sensor
     """Sensor für den generellen Druckerstatus (idle/processing/stopped/offline)."""
 
     _attr_translation_key = "printer_state"
+    _attr_icon = "mdi:printer"
     _attr_device_class = SensorDeviceClass.ENUM
     # Rohwerte, die native_value liefern kann - Home Assistant übersetzt diese
     # über strings.json/translations/*.json (entity.sensor.printer_state.state.*)
