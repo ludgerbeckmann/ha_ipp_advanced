@@ -34,6 +34,22 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     }
 )
 
+# Gemeinsamer Validator für das Abfrageintervall - sowohl beim Hinzufügen
+# eines neuen Druckers als auch später im Options Flow (Zahnrad-Symbol).
+SCAN_INTERVAL_VALIDATOR = vol.All(
+    vol.Coerce(int), vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL)
+)
+
+# Beim erstmaligen Hinzufügen zusätzlich das Abfrageintervall abfragen -
+# beim Reconfigure-Schritt bewusst nicht (der ist nur für die
+# Verbindungsdaten gedacht, das Intervall lässt sich jederzeit über das
+# Zahnrad-Symbol/den Options Flow ändern).
+STEP_USER_DATA_SCHEMA_WITH_SCAN_INTERVAL = STEP_USER_DATA_SCHEMA.extend(
+    {
+        vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): SCAN_INTERVAL_VALIDATOR,
+    }
+)
+
 
 async def _async_try_connect(user_input: dict[str, Any]):
     """Verbindung zum Drucker testen.
@@ -69,6 +85,7 @@ class IPPAdvancedConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            scan_interval = user_input.pop(CONF_SCAN_INTERVAL)
             printer, error = await _async_try_connect(user_input)
             if error is not None:
                 errors["base"] = error
@@ -79,10 +96,13 @@ class IPPAdvancedConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(
                     title=printer.info.name or user_input[CONF_HOST],
                     data=user_input,
+                    options={CONF_SCAN_INTERVAL: scan_interval},
                 )
 
         return self.async_show_form(
-            step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+            step_id="user",
+            data_schema=STEP_USER_DATA_SCHEMA_WITH_SCAN_INTERVAL,
+            errors=errors,
         )
 
     async def async_step_reconfigure(
@@ -152,10 +172,7 @@ class IPPAdvancedOptionsFlow(config_entries.OptionsFlow):
                         default=self.config_entry.options.get(
                             CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
                         ),
-                    ): vol.All(
-                        vol.Coerce(int),
-                        vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
-                    )
+                    ): SCAN_INTERVAL_VALIDATOR
                 }
             ),
         )

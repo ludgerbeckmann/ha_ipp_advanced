@@ -12,12 +12,17 @@ ein eigenes __init__ ist dafuer nicht noetig.
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from homeassistant.const import CONF_SCAN_INTERVAL
+from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SCAN_INTERVAL, CONF_SSL, CONF_VERIFY_SSL
 from homeassistant.data_entry_flow import FlowResultType
 
-from custom_components.ipp_advanced.config_flow import IPPAdvancedOptionsFlow
+from custom_components.ipp_advanced.config_flow import (
+    IPPAdvancedConfigFlow,
+    IPPAdvancedOptionsFlow,
+    STEP_USER_DATA_SCHEMA_WITH_SCAN_INTERVAL,
+)
+from custom_components.ipp_advanced.const import CONF_BASE_PATH
 
 
 def _make_flow(entry_options: dict | None = None) -> IPPAdvancedOptionsFlow:
@@ -53,3 +58,45 @@ async def test_options_flow_saves_new_scan_interval():
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"] == {CONF_SCAN_INTERVAL: 120}
+
+
+def test_user_step_schema_offers_scan_interval():
+    # Das Abfrageintervall soll schon beim Hinzufuegen eines neuen Druckers
+    # einstellbar sein, nicht erst hinterher ueber die Options.
+    assert CONF_SCAN_INTERVAL in STEP_USER_DATA_SCHEMA_WITH_SCAN_INTERVAL.schema
+
+
+async def test_user_step_stores_scan_interval_as_option_not_data():
+    """scan_interval landet in options (wie der Options Flow es liest),
+    nicht in data - sonst wuerde der Coordinator es nie finden
+    (entry.options.get(CONF_SCAN_INTERVAL, ...), siehe __init__.py)."""
+    flow = IPPAdvancedConfigFlow()
+    flow.hass = MagicMock()
+    flow.context = {}
+    flow.flow_id = "test-flow"
+    flow.handler = "ipp_advanced"
+
+    fake_printer = SimpleNamespace(info=SimpleNamespace(uuid="uuid-1", name="Test Printer"))
+
+    with (
+        patch(
+            "custom_components.ipp_advanced.config_flow._async_try_connect",
+            new=AsyncMock(return_value=(fake_printer, None)),
+        ),
+        patch.object(IPPAdvancedConfigFlow, "async_set_unique_id", new=AsyncMock()),
+        patch.object(IPPAdvancedConfigFlow, "_abort_if_unique_id_configured", new=MagicMock()),
+    ):
+        result = await flow.async_step_user(
+            {
+                CONF_HOST: "10.0.0.5",
+                CONF_PORT: 631,
+                CONF_BASE_PATH: "/ipp/print",
+                CONF_SSL: False,
+                CONF_VERIFY_SSL: False,
+                CONF_SCAN_INTERVAL: 90,
+            }
+        )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["options"] == {CONF_SCAN_INTERVAL: 90}
+    assert CONF_SCAN_INTERVAL not in result["data"]
