@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Drucker verbinden",
+        "data": {
+          "host": "Host / IP-Adresse",
+          "port": "Port",
+          "base_path": "IPP Base Path",
+          "ssl": "TLS verwenden",
+          "verify_ssl": "SSL-Zertifikat prüfen"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zum Drucker fehlgeschlagen. Prüfe, ob er eingeschaltet und über IPP erreichbar ist.",
+      "connection_upgrade": "Verbindung erfordert IPP-over-TLS (Port 631 ggf. mit ssl: true versuchen)."
+    },
+    "abort": {
+      "already_configured": "Dieser Drucker ist bereits konfiguriert."
+    }
+  }
+}
