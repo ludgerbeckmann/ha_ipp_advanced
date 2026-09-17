@@ -52,7 +52,7 @@ class IPPAdvancedBaseEntity(CoordinatorEntity[IPPAdvancedDataUpdateCoordinator])
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry.entry_id)},
             name=printer.info.name if printer else self._entry.title,
-            manufacturer=printer.info.marker_types if printer else None,
+            manufacturer=printer.info.manufacturer if printer else None,
             model=printer.info.model if printer else None,
         )
 
