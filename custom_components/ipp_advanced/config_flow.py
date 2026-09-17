@@ -122,18 +122,19 @@ class IPPAdvancedConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry: ConfigEntry,
     ) -> IPPAdvancedOptionsFlow:
         """Options Flow für dieses Integration erstellen (Abfrageintervall)."""
-        return IPPAdvancedOptionsFlow(config_entry)
+        return IPPAdvancedOptionsFlow()
 
 
 class IPPAdvancedOptionsFlow(config_entries.OptionsFlow):
-    """Options für einen bestehenden IPP-Advanced-Eintrag (Abfrageintervall)."""
+    """Options für einen bestehenden IPP-Advanced-Eintrag (Abfrageintervall).
 
-    def __init__(self, config_entry: ConfigEntry) -> None:
-        # Explizite Zuweisung statt uns auf das seit HA 2024.12 automatisch
-        # gesetzte self.config_entry zu verlassen - so funktioniert es auch
-        # auf älteren, aber noch unterstützten HA-Versionen unverändert
-        # (nur ein Deprecation-Log auf neueren, kein Fehler).
-        self.config_entry = config_entry
+    Kein eigener __init__: self.config_entry ist seit HA 2024.12 eine vom
+    Framework automatisch befüllte Property. Eine eigene Zuweisung
+    (self.config_entry = config_entry) war bis HA 2025.12 nur mit
+    Deprecation-Warnung möglich - seitdem hat die Property keinen Setter
+    mehr und eine solche Zuweisung wirft AttributeError (führte zu einem
+    500er beim Öffnen des Options-Flows über das Zahnrad-Symbol).
+    """
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
