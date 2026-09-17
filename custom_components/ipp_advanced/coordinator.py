@@ -67,6 +67,11 @@ class IPPAdvancedDataUpdateCoordinator(DataUpdateCoordinator[IPPAdvancedData]):
             update_interval=SCAN_INTERVAL,
         )
 
+    @property
+    def consecutive_failures(self) -> int:
+        """Anzahl aufeinanderfolgender fehlgeschlagener Polls (für Diagnose)."""
+        return self._consecutive_failures
+
     async def _async_update_data(self) -> IPPAdvancedData:
         """Fetch data from the printer, falling back to cached data on error."""
         try:
