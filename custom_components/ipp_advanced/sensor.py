@@ -156,8 +156,11 @@ class IPPAdvancedPrinterStateSensor(IPPAdvancedBaseEntity, RestoreEntity, Sensor
         if printer is not None:
             # Wenn der Coordinator gerade auf zwischengespeicherte Werte
             # zurückgefallen ist, weisen wir das hier explizit aus, statt
-            # einfach "idle" vorzugaukeln.
-            if not self.coordinator.last_update_success:
+            # einfach "idle" vorzugaukeln. Achtung: coordinator.data.last_update_success
+            # (unser eigenes Feld) statt coordinator.last_update_success (das
+            # eingebaute Coordinator-Flag, das wegen des bewussten "kein raise" bei
+            # zwischengespeicherten Werten nie False wird).
+            if not self.coordinator.data.last_update_success:
                 return "offline_cached"
             return printer.state.printer_state
         return self._restored_value
