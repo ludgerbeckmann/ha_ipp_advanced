@@ -1,0 +1,8 @@
+# pytest-homeassistant-custom-component bringt eine zu sich selbst passende,
+# getestete Kombination aus pytest/pytest-asyncio/homeassistant und deren
+# Transitiv-Abhängigkeiten (u.a. hass-nabucasa, acme, josepy) mit. Diese hier
+# zusätzlich einzeln zu pinnen hat dazu geführt, dass pip für die
+# Transitiv-Abhängigkeiten die jeweils neuesten, teils inkompatiblen
+# Versionen aufgelöst hat.
+pytest-homeassistant-custom-component
+pyipp==0.17.0
