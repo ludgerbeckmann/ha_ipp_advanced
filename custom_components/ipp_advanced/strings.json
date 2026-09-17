@@ -45,7 +45,6 @@
   "entity": {
     "sensor": {
       "printer_state": {
-        "name": "Status",
         "state": {
           "idle": "Leerlauf",
           "printing": "Druckt",
@@ -55,7 +54,7 @@
     },
     "binary_sensor": {
       "reachable": {
-        "name": "Erreichbar"
+        "name": "Verbindungsstatus"
       }
     }
   }
