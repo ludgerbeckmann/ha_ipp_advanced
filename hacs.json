@@ -1,6 +1,5 @@
 {
   "name": "IPP Advanced",
   "render_readme": true,
-  "iot_class": "local_polling",
   "homeassistant": "2024.5.0"
 }

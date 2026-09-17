@@ -1,5 +1,10 @@
 # IPP Advanced
 
+[![Validate](https://github.com/ludgerbeckmann/ha_ipp_advanced/actions/workflows/validate.yml/badge.svg)](https://github.com/ludgerbeckmann/ha_ipp_advanced/actions/workflows/validate.yml)
+[![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+[![GitHub release](https://img.shields.io/github/release/ludgerbeckmann/ha_ipp_advanced.svg)](https://github.com/ludgerbeckmann/ha_ipp_advanced/releases/)
+[![GitHub license](https://img.shields.io/github/license/ludgerbeckmann/ha_ipp_advanced.svg)](https://github.com/ludgerbeckmann/ha_ipp_advanced/blob/main/LICENSE)
+
 Custom Home Assistant Integration auf Basis der Core-`ipp`-Integration – mit
 dem entscheidenden Unterschied, dass Sensorwerte (Tonerstand, Tintenstand,
 Druckerstatus etc.) **erhalten bleiben**, wenn der Drucker ausgeschaltet oder
