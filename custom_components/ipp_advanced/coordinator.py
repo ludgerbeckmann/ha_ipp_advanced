@@ -16,7 +16,7 @@ from pyipp.models import Printer
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DEFAULT_BASE_PATH, LOGGER, SCAN_INTERVAL
 
@@ -84,17 +84,23 @@ class IPPAdvancedDataUpdateCoordinator(DataUpdateCoordinator[IPPAdvancedData]):
                 )
                 # Wichtig: Wir geben hier erfolgreich Daten zurück (kein raise),
                 # damit der Coordinator nicht last_update_success=False setzt
-                # und die Entities nicht auf 'unavailable' fallen.
+                # und die Entities nicht auf 'unavailable' fallen. last_update_success
+                # im Rückgabewert markiert trotzdem, dass es sich um zwischengespeicherte
+                # statt frische Werte handelt (siehe sensor.py, offline_cached).
                 return IPPAdvancedData(
                     printer=self._last_printer,
                     available=True,
-                    last_update_success=True,
+                    last_update_success=False,
                 )
 
-            # Noch nie erfolgreich Daten geholt -> es gibt nichts zum Zwischenspeichern,
-            # dann darf die Entity ruhig unavailable sein.
+            # Noch nie erfolgreich Daten geholt -> es gibt nichts zum Zwischenspeichern.
+            # Hier MUSS ein echter Fehler geworfen werden: async_config_entry_first_refresh()
+            # (siehe __init__.py) erkennt einen Fehlschlag nur über eine Exception. Ohne den
+            # raise würde die Config Entry trotzdem eingerichtet, aber sensor.py stürzt beim
+            # Anlegen der Entities ab (printer.markers auf None) - der Eintrag stünde am Ende
+            # ganz ohne Entities da.
             LOGGER.warning("Drucker %s nicht erreichbar und keine zwischengespeicherten Werte vorhanden: %s", self.host, error)
-            return IPPAdvancedData(printer=None, available=False, last_update_success=False)  # type: ignore[arg-type]
+            raise UpdateFailed(f"Drucker {self.host} nicht erreichbar: {error}") from error
 
         self._consecutive_failures = 0
         self._last_printer = printer
