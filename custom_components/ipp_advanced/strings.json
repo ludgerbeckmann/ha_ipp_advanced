@@ -8,7 +8,8 @@
           "port": "Port",
           "base_path": "IPP Base Path",
           "ssl": "TLS verwenden",
-          "verify_ssl": "SSL-Zertifikat prüfen"
+          "verify_ssl": "SSL-Zertifikat prüfen",
+          "scan_interval": "Abfrageintervall (Sekunden)"
         }
       },
       "reconfigure": {
