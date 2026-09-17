@@ -18,7 +18,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DEFAULT_BASE_PATH, LOGGER, SCAN_INTERVAL
+from .const import DEFAULT_BASE_PATH, DEFAULT_SCAN_INTERVAL, LOGGER
 
 
 @dataclass
@@ -44,6 +44,7 @@ class IPPAdvancedDataUpdateCoordinator(DataUpdateCoordinator[IPPAdvancedData]):
         base_path: str = DEFAULT_BASE_PATH,
         tls: bool = False,
         verify_ssl: bool = False,
+        scan_interval: int = DEFAULT_SCAN_INTERVAL,
     ) -> None:
         """Initialize."""
         self.host = host
@@ -64,7 +65,7 @@ class IPPAdvancedDataUpdateCoordinator(DataUpdateCoordinator[IPPAdvancedData]):
             hass,
             LOGGER,
             name=f"{host}",
-            update_interval=SCAN_INTERVAL,
+            update_interval=timedelta(seconds=scan_interval),
         )
 
     @property
