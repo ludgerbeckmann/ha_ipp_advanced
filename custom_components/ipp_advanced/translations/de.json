@@ -10,6 +10,16 @@
           "ssl": "TLS verwenden",
           "verify_ssl": "SSL-Zertifikat prüfen"
         }
+      },
+      "reconfigure": {
+        "title": "Drucker neu konfigurieren",
+        "data": {
+          "host": "Host / IP-Adresse",
+          "port": "Port",
+          "base_path": "IPP Base Path",
+          "ssl": "TLS verwenden",
+          "verify_ssl": "SSL-Zertifikat prüfen"
+        }
       }
     },
     "error": {
@@ -17,7 +27,19 @@
       "connection_upgrade": "Verbindung erfordert IPP-over-TLS (Port 631 ggf. mit ssl: true versuchen)."
     },
     "abort": {
-      "already_configured": "Dieser Drucker ist bereits konfiguriert."
+      "already_configured": "Dieser Drucker ist bereits konfiguriert.",
+      "reconfigure_successful": "Die Verbindungseinstellungen wurden aktualisiert.",
+      "unique_id_mismatch": "Diese Adresse gehört zu einem anderen Drucker als dem ursprünglich konfigurierten."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "IPP Advanced Optionen",
+        "data": {
+          "scan_interval": "Abfrageintervall (Sekunden)"
+        }
+      }
     }
   },
   "entity": {

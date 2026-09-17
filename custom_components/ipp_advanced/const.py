@@ -1,7 +1,6 @@
 """Constants for the IPP Advanced integration."""
 from __future__ import annotations
 
-from datetime import timedelta
 import logging
 
 DOMAIN = "ipp_advanced"
@@ -12,7 +11,11 @@ DEFAULT_BASE_PATH = "/ipp/print"
 DEFAULT_TLS = False
 DEFAULT_VERIFY_SSL = False
 
-SCAN_INTERVAL = timedelta(seconds=60)
+# Abfrageintervall in Sekunden - Standardwert, falls in den Optionen des
+# Eintrags nichts anderes hinterlegt ist (siehe config_flow.py, Options Flow).
+DEFAULT_SCAN_INTERVAL = 60
+MIN_SCAN_INTERVAL = 10
+MAX_SCAN_INTERVAL = 3600
 
 CONF_BASE_PATH = "base_path"
 
