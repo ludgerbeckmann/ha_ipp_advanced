@@ -181,3 +181,16 @@ class IPPAdvancedPrinterStateSensor(IPPAdvancedBaseEntity, RestoreEntity, Sensor
                 return "offline_cached"
             return printer.state.printer_state
         return self._restored_value
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        printer = self.coordinator.data.printer
+        if printer is None:
+            return {}
+        # pyipp liefert diese Gründe/Meldungen bereits mit (z.B. "media-empty",
+        # "toner-low"), bisher wurden sie aber nirgends ausgewertet - hilfreich,
+        # um bei state=="stopped" auch zu sehen, woran es liegt.
+        return {
+            "state_reasons": printer.state.reasons,
+            "state_message": printer.state.message,
+        }
