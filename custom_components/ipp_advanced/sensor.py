@@ -1,8 +1,9 @@
 """Sensor platform for IPP Advanced."""
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST, CONF_SSL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -49,11 +50,18 @@ class IPPAdvancedBaseEntity(CoordinatorEntity[IPPAdvancedDataUpdateCoordinator])
     @property
     def device_info(self) -> DeviceInfo:
         printer = self.coordinator.data.printer
+        scheme = "https" if self._entry.data.get(CONF_SSL) else "http"
+        host = self._entry.data[CONF_HOST]
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry.entry_id)},
             name=printer.info.name if printer else self._entry.title,
             manufacturer=printer.info.manufacturer if printer else None,
             model=printer.info.model if printer else None,
+            # Zeigt Host/IP-Adresse als klickbaren Link auf der Geräteseite an
+            # (HA hat kein eigenes "IP-Adresse"-Textfeld dort). Bewusst ohne den
+            # IPP-Port (meist 631) - das eingebettete Web-Interface der meisten
+            # Drucker läuft auf dem Standard-HTTP(S)-Port.
+            configuration_url=f"{scheme}://{host}/",
         )
 
     @property
@@ -135,6 +143,11 @@ class IPPAdvancedPrinterStateSensor(IPPAdvancedBaseEntity, RestoreEntity, Sensor
     """Sensor für den generellen Druckerstatus (idle/processing/stopped/offline)."""
 
     _attr_translation_key = "printer_state"
+    _attr_device_class = SensorDeviceClass.ENUM
+    # Rohwerte, die native_value liefern kann - Home Assistant übersetzt diese
+    # über strings.json/translations/*.json (entity.sensor.printer_state.state.*)
+    # automatisch in die jeweilige Sprache der Oberfläche.
+    _attr_options = ["idle", "printing", "stopped", "offline_cached"]
 
     def __init__(
         self,
