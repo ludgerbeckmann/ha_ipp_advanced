@@ -1,7 +1,7 @@
 """Sensor platform for IPP Advanced."""
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -36,6 +36,11 @@ class IPPAdvancedMarkerSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEntity
 
     _attr_native_unit_of_measurement = "%"
     _attr_icon = "mdi:water"
+    # Ohne state_class erzeugte Home Assistant für diesen numerischen Sensor
+    # keine Langzeitstatistik/Verlaufsgrafik und meldete irgendwann die
+    # Reparatur "Entität hat keine Zustandsklasse mehr". Core's eigene
+    # ipp-Integration setzt für ihren Marker-Sensor genau das Gleiche.
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(
         self,
@@ -81,7 +86,10 @@ class IPPAdvancedMarkerSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEntity
     def native_value(self) -> str | int | None:
         marker = self._current_marker()
         if marker is not None:
-            return marker.level
+            # Manche Drucker melden -1/-2 für "Füllstand unbekannt" statt
+            # einen Prozentwert - das würde als Messwert (state_class
+            # measurement) irreführend aussehen.
+            return marker.level if marker.level >= 0 else None
         # Drucker war seit dem letzten Neustart noch nie erreichbar:
         # auf den aus der HA-Datenbank wiederhergestellten Wert zurückfallen.
         return self._restored_value

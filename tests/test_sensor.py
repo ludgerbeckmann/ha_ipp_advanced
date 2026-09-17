@@ -11,6 +11,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+from homeassistant.components.sensor import SensorStateClass
 from pyipp.models import Info, Marker, Printer, State
 
 from custom_components.ipp_advanced.coordinator import IPPAdvancedData
@@ -122,6 +123,38 @@ def test_marker_sensor_reports_level_and_attributes():
         "marker_low_level": 10,
         "marker_high_level": 100,
     }
+
+
+def test_marker_sensor_has_measurement_state_class():
+    # Ohne state_class erzeugt Home Assistant keine Langzeitstatistik fuer
+    # diesen numerischen Sensor und meldet irgendwann die Reparatur
+    # "Entitaet hat keine Zustandsklasse mehr".
+    sensor = IPPAdvancedMarkerSensor(_make_coordinator(_make_printer()), _make_entry(), marker_id=1)
+    assert sensor.state_class == SensorStateClass.MEASUREMENT
+
+
+def test_marker_sensor_treats_negative_level_as_unknown():
+    # Manche Drucker melden -1/-2 fuer "Fuellstand unbekannt" statt eines
+    # Prozentwerts.
+    printer = Printer(
+        info=Info(name="Test", printer_name="test", printer_uri_supported=[], uptime=100),
+        markers=[
+            Marker(
+                marker_id=1,
+                marker_type="ink",
+                name="Schwarz",
+                color="#000000",
+                level=-2,
+                low_level=10,
+                high_level=100,
+            )
+        ],
+        state=State(printer_state="idle", reasons=None, message=None),
+        uris=[],
+        booted_at=None,
+    )
+    sensor = IPPAdvancedMarkerSensor(_make_coordinator(printer), _make_entry(), marker_id=1)
+    assert sensor.native_value is None
 
 
 def test_marker_sensor_falls_back_to_restored_value_when_printer_missing():
