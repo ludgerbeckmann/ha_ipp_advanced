@@ -1,24 +1,35 @@
 """DataUpdateCoordinator for IPP Advanced.
 
-Kernidee: Wenn der Drucker nicht erreichbar ist (ausgeschaltet, Netzwerkfehler),
-wird NICHT UpdateFailed geworfen (das würde alle Entities auf 'unavailable'
-setzen), sondern der zuletzt erfolgreich gelesene Datensatz wird einfach
-weitergegeben. So bleiben Werte wie Tonerstand etc. sichtbar, auch wenn der
-Drucker gerade offline ist.
+Kernidee: Wenn der Drucker nicht erreichbar ist (ausgeschaltet, Netzwerkfehler)
+UND es bereits einen zuletzt erfolgreich gelesenen Datensatz gibt, wird NICHT
+UpdateFailed geworfen (das würde alle Entities auf 'unavailable' setzen),
+sondern dieser zwischengespeicherte Datensatz wird einfach weitergegeben. So
+bleiben Werte wie Tonerstand etc. sichtbar, auch wenn der Drucker gerade
+offline ist.
+
+Dieser Zwischenspeicher wird zusätzlich auf die Festplatte geschrieben
+(_store) und beim Start geladen (async_load_cached_printer) - sonst würde ein
+Home-Assistant-Neustart bei zufällig gerade ausgeschaltetem Drucker den
+In-Memory-Cache verlieren und die Entities gar nicht erst anlegen (siehe
+async_load_cached_printer für Details).
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Any
 
 from pyipp import IPP, IPPConnectionError, IPPConnectionUpgradeRequired, IPPError
-from pyipp.models import Printer
+from pyipp.models import Info, Marker, Printer, State, Uri
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DEFAULT_BASE_PATH, DEFAULT_SCAN_INTERVAL, LOGGER
+from .const import DEFAULT_BASE_PATH, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER
+
+STORAGE_VERSION = 1
 
 
 @dataclass
@@ -28,6 +39,25 @@ class IPPAdvancedData:
     printer: Printer
     available: bool
     last_update_success: bool
+
+
+def _printer_to_storage(printer: Printer) -> dict[str, Any]:
+    """Printer in eine JSON-taugliche Form für den Store bringen."""
+    data = printer.as_dict()
+    data["booted_at"] = printer.booted_at.isoformat() if printer.booted_at else None
+    return data
+
+
+def _printer_from_storage(data: dict[str, Any]) -> Printer:
+    """Gegenstück zu _printer_to_storage()."""
+    booted_at = data["booted_at"]
+    return Printer(
+        info=Info(**data["info"]),
+        markers=[Marker(**marker) for marker in data["markers"]],
+        state=State(**data["state"]),
+        uris=[Uri(**uri) for uri in data["uris"]],
+        booted_at=datetime.fromisoformat(booted_at) if booted_at else None,
+    )
 
 
 class IPPAdvancedDataUpdateCoordinator(DataUpdateCoordinator[IPPAdvancedData]):
@@ -60,6 +90,9 @@ class IPPAdvancedDataUpdateCoordinator(DataUpdateCoordinator[IPPAdvancedData]):
         # Hier landet der letzte erfolgreich gelesene Printer-Datensatz.
         self._last_printer: Printer | None = None
         self._consecutive_failures = 0
+        self._store: Store[dict[str, Any]] = Store(
+            hass, STORAGE_VERSION, f"{DOMAIN}_{host}_printer"
+        )
 
         super().__init__(
             hass,
@@ -72,6 +105,39 @@ class IPPAdvancedDataUpdateCoordinator(DataUpdateCoordinator[IPPAdvancedData]):
     def consecutive_failures(self) -> int:
         """Anzahl aufeinanderfolgender fehlgeschlagener Polls (für Diagnose)."""
         return self._consecutive_failures
+
+    async def async_load_cached_printer(self) -> None:
+        """Vor dem ersten Poll aufrufen: zuletzt gespeicherten Druckerzustand
+        von der Platte laden.
+
+        Ohne das würde ein Home-Assistant-Neustart bei zufällig gerade
+        ausgeschaltetem Drucker den In-Memory-Cache verlieren: der erste Poll
+        dieser Coordinator-Instanz schlägt fehl, es gibt (noch) keinen
+        zwischengespeicherten Wert, also wirft _async_update_data() unten
+        UpdateFailed -> ConfigEntryNotReady -> "Einrichtungsfehler, wird
+        erneut versucht" - obwohl der Drucker vor dem Neustart problemlos
+        erreichbar war. Mit dem hier geladenen Wert greift stattdessen sofort
+        der normale Cache-Fallback-Pfad.
+        """
+        try:
+            stored = await self._store.async_load()
+        except Exception:  # noqa: BLE001 - beschädigte/inkompatible Store-Datei nicht fatal
+            LOGGER.debug(
+                "Zwischengespeicherten Druckerzustand für %s konnte nicht geladen werden",
+                self.host,
+                exc_info=True,
+            )
+            return
+        if stored is None:
+            return
+        try:
+            self._last_printer = _printer_from_storage(stored)
+        except Exception:  # noqa: BLE001 - z.B. altes/inkompatibles Datenformat
+            LOGGER.debug(
+                "Zwischengespeicherter Druckerzustand für %s ist ungültig",
+                self.host,
+                exc_info=True,
+            )
 
     async def _async_update_data(self) -> IPPAdvancedData:
         """Fetch data from the printer, falling back to cached data on error."""
@@ -110,4 +176,5 @@ class IPPAdvancedDataUpdateCoordinator(DataUpdateCoordinator[IPPAdvancedData]):
 
         self._consecutive_failures = 0
         self._last_printer = printer
+        await self._store.async_save(_printer_to_storage(printer))
         return IPPAdvancedData(printer=printer, available=True, last_update_success=True)
