@@ -7,5 +7,5 @@ attribute_dump:
     zusätzlichen Informationen ein Drucker unterstützt - ganz ohne
     zusätzliches Gerät, SSH oder Skript-Installation.
   target:
-    device:
+    entity:
       integration: ipp_advanced

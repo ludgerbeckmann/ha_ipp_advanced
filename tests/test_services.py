@@ -11,7 +11,6 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from homeassistant.const import ATTR_DEVICE_ID
 from pyipp import IPPConnectionError
 
 from custom_components.ipp_advanced import (
@@ -67,22 +66,25 @@ async def test_dump_printer_attributes_reports_connection_error_as_result():
     assert "error" in result
 
 
-async def test_handle_attribute_dump_looks_up_entry_via_device_registry():
+async def test_handle_attribute_dump_looks_up_entry_via_target_resolution():
+    """Egal ob im Ziel ein Geraet oder eine Entity ausgewaehlt wurde -
+    async_extract_config_entry_ids loest beides auf den zugehoerigen Config
+    Entry auf (siehe services.yaml: target.entity, kein target.device mehr -
+    Hassfest lehnt Geraete-Filter auf target seit kurzem ab)."""
     hass = MagicMock()
     fake_coordinator = SimpleNamespace(ipp=MagicMock())
     fake_entry = SimpleNamespace(
         domain=DOMAIN, title="Epson ET-3950", runtime_data=fake_coordinator
     )
-    fake_device = SimpleNamespace(config_entries={"entry123"})
-
-    device_registry = MagicMock()
-    device_registry.async_get.return_value = fake_device
     hass.config_entries.async_get_entry.return_value = fake_entry
 
-    call = SimpleNamespace(data={ATTR_DEVICE_ID: ["device123"]})
+    call = SimpleNamespace(data={})
 
     with (
-        patch("custom_components.ipp_advanced.dr.async_get", return_value=device_registry),
+        patch(
+            "custom_components.ipp_advanced.service_helper.async_extract_config_entry_ids",
+            new=AsyncMock(return_value={"entry123"}),
+        ),
         patch(
             "custom_components.ipp_advanced._async_dump_printer_attributes",
             new=AsyncMock(return_value={"printer-name": "Epson ET-3950"}),
@@ -93,18 +95,17 @@ async def test_handle_attribute_dump_looks_up_entry_via_device_registry():
     assert result == {"printers": {"Epson ET-3950": {"printer-name": "Epson ET-3950"}}}
 
 
-async def test_handle_attribute_dump_skips_devices_from_other_domains():
+async def test_handle_attribute_dump_skips_entries_from_other_domains():
     hass = MagicMock()
     fake_entry = SimpleNamespace(domain="other_domain", title="Fremd", runtime_data=None)
-    fake_device = SimpleNamespace(config_entries={"entry123"})
-
-    device_registry = MagicMock()
-    device_registry.async_get.return_value = fake_device
     hass.config_entries.async_get_entry.return_value = fake_entry
 
-    call = SimpleNamespace(data={ATTR_DEVICE_ID: ["device123"]})
+    call = SimpleNamespace(data={})
 
-    with patch("custom_components.ipp_advanced.dr.async_get", return_value=device_registry):
+    with patch(
+        "custom_components.ipp_advanced.service_helper.async_extract_config_entry_ids",
+        new=AsyncMock(return_value={"entry123"}),
+    ):
         result = await _async_handle_attribute_dump(hass, call)
 
     assert result == {"printers": {}}

@@ -10,7 +10,6 @@ from pyipp.enums import IppOperation
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    ATTR_DEVICE_ID,
     CONF_HOST,
     CONF_PORT,
     CONF_SCAN_INTERVAL,
@@ -19,7 +18,7 @@ from homeassistant.const import (
     Platform,
 )
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import service as service_helper
 
 from .const import CONF_BASE_PATH, DEFAULT_BASE_PATH, DEFAULT_SCAN_INTERVAL, DOMAIN
 from .coordinator import IPPAdvancedDataUpdateCoordinator
@@ -90,25 +89,15 @@ async def _async_handle_attribute_dump(
     des ausgewählten Geräts - kein zusätzliches Gerät, kein SSH, kein
     separates Skript nötig, da die Integration ohnehin schon erfolgreich mit
     dem Drucker verbunden ist. Über Entwicklerwerkzeuge → Aktionen aufrufbar.
+
+    async_extract_config_entry_ids löst dabei sowohl eine Geräte- als auch
+    eine Entity-Auswahl im Ziel korrekt auf dem passenden Config Entry auf.
     """
-    device_registry = dr.async_get(hass)
     printers: dict[str, Any] = {}
 
-    for device_id in call.data[ATTR_DEVICE_ID]:
-        device = device_registry.async_get(device_id)
-        if device is None:
-            continue
-
-        entry = next(
-            (
-                found
-                for entry_id in device.config_entries
-                if (found := hass.config_entries.async_get_entry(entry_id)) is not None
-                and found.domain == DOMAIN
-            ),
-            None,
-        )
-        if entry is None:
+    for entry_id in await service_helper.async_extract_config_entry_ids(hass, call):
+        entry = hass.config_entries.async_get_entry(entry_id)
+        if entry is None or entry.domain != DOMAIN:
             continue
 
         coordinator: IPPAdvancedDataUpdateCoordinator = entry.runtime_data
