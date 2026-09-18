@@ -1,0 +1,11 @@
+attribute_dump:
+  name: IPP-Attribute abfragen
+  description: >-
+    Fragt beim Drucker direkt alle über IPP gemeldeten Attribute ab (auch
+    solche, die diese Integration sonst nicht in eigenen Sensoren abbildet)
+    und gibt sie als Ergebnis zurück. Praktisch, um schnell zu prüfen, welche
+    zusätzlichen Informationen ein Drucker unterstützt - ganz ohne
+    zusätzliches Gerät, SSH oder Skript-Installation.
+  target:
+    entity:
+      integration: ipp_advanced

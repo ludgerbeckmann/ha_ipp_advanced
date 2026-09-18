@@ -57,6 +57,17 @@ und Host/IP des Druckers eingeben. Für jeden Drucker separat wiederholen.
 - Ein Status-Sensor pro Drucker (`idle` / `processing` / `stopped` /
   `offline_cached`)
 
+## Aktionen
+
+- **IPP-Attribute abfragen** (`ipp_advanced.attribute_dump`): Fragt beim
+  ausgewählten Drucker direkt alle über IPP gemeldeten Attribute ab - auch
+  solche, die diese Integration sonst nicht in eigenen Sensoren abbildet -
+  und gibt sie als Ergebnis zurück. Aufrufbar über
+  **Entwicklerwerkzeuge → Aktionen**, Ziel: das gewünschte Drucker-Gerät.
+  Nutzt die ohnehin schon laufende Verbindung der Integration, es ist also
+  kein zusätzliches Gerät, kein SSH und keine separate Skript-Installation
+  nötig.
+
 ## Bekannte Einschränkungen
 
 - Wurde der Drucker seit dem letzten HA-Neustart noch nie erfolgreich
