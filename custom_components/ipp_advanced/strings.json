@@ -52,8 +52,8 @@
           "stopped": "Gestoppt"
         }
       },
-      "uptime": {
-        "name": "Laufzeit"
+      "last_boot": {
+        "name": "Letzter Neustart"
       }
     },
     "binary_sensor": {
