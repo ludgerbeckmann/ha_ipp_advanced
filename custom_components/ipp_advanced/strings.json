@@ -51,6 +51,9 @@
           "printing": "Druckt",
           "stopped": "Gestoppt"
         }
+      },
+      "uptime": {
+        "name": "Laufzeit"
       }
     },
     "binary_sensor": {

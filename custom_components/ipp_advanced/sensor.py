@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -21,7 +22,8 @@ async def async_setup_entry(
 
     printer = coordinator.data.printer
     entities: list[SensorEntity] = [
-        IPPAdvancedPrinterStateSensor(coordinator, entry)
+        IPPAdvancedPrinterStateSensor(coordinator, entry),
+        IPPAdvancedUptimeSensor(coordinator, entry),
     ]
 
     # Für jedes Verbrauchsmaterial (Toner, Tinte, Trommel, ...) einen Sensor anlegen.
@@ -154,3 +156,34 @@ class IPPAdvancedPrinterStateSensor(IPPAdvancedBaseEntity, RestoreEntity, Sensor
             "state_reasons": printer.state.reasons,
             "state_message": printer.state.message,
         }
+
+
+class IPPAdvancedUptimeSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEntity):
+    """Sensor für die Laufzeit des Druckers seit seinem letzten Neustart."""
+
+    _attr_translation_key = "uptime"
+    _attr_icon = "mdi:timer-outline"
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_native_unit_of_measurement = UnitOfTime.SECONDS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(
+        self,
+        coordinator: IPPAdvancedDataUpdateCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_uptime"
+        self._restored_value: str | None = None
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        if (last_state := await self.async_get_last_state()) is not None:
+            self._restored_value = last_state.state
+
+    @property
+    def native_value(self) -> int | str | None:
+        printer = self.coordinator.data.printer
+        if printer is not None:
+            return printer.info.uptime
+        return self._restored_value
