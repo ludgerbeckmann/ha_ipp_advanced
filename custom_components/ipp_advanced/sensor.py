@@ -1,12 +1,14 @@
 """Sensor platform for IPP Advanced."""
 from __future__ import annotations
 
+from datetime import datetime
+
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.util import dt as dt_util
 
 from .coordinator import IPPAdvancedDataUpdateCoordinator
 from .entity import IPPAdvancedBaseEntity
@@ -23,7 +25,7 @@ async def async_setup_entry(
     printer = coordinator.data.printer
     entities: list[SensorEntity] = [
         IPPAdvancedPrinterStateSensor(coordinator, entry),
-        IPPAdvancedUptimeSensor(coordinator, entry),
+        IPPAdvancedLastBootSensor(coordinator, entry),
     ]
 
     # Für jedes Verbrauchsmaterial (Toner, Tinte, Trommel, ...) einen Sensor anlegen.
@@ -158,14 +160,21 @@ class IPPAdvancedPrinterStateSensor(IPPAdvancedBaseEntity, RestoreEntity, Sensor
         }
 
 
-class IPPAdvancedUptimeSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEntity):
-    """Sensor für die Laufzeit des Druckers seit seinem letzten Neustart."""
+class IPPAdvancedLastBootSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEntity):
+    """Sensor für den Zeitpunkt des letzten Neustarts des Druckers.
 
-    _attr_translation_key = "uptime"
-    _attr_icon = "mdi:timer-outline"
-    _attr_device_class = SensorDeviceClass.DURATION
-    _attr_native_unit_of_measurement = UnitOfTime.SECONDS
-    _attr_state_class = SensorStateClass.MEASUREMENT
+    Ein Timestamp-Sensor statt einer laufenden Sekundenzahl - das ist auch
+    der Ansatz von Home Assistants eigenen system_monitor-/uptime-
+    Integrationen ("Last Boot"). Der Wert ändert sich nur, wenn der Drucker
+    tatsächlich neu startet (statt bei jedem Poll), und Home Assistant
+    zeigt ihn im Frontend automatisch als relative Zeit an (z.B. "vor 3
+    Tagen") - auch für sehr lange Laufzeiten besser lesbar als ein
+    Sekundenwert.
+    """
+
+    _attr_translation_key = "last_boot"
+    _attr_icon = "mdi:restart"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     def __init__(
         self,
@@ -173,17 +182,17 @@ class IPPAdvancedUptimeSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEntity
         entry: ConfigEntry,
     ) -> None:
         super().__init__(coordinator, entry)
-        self._attr_unique_id = f"{entry.entry_id}_uptime"
-        self._restored_value: str | None = None
+        self._attr_unique_id = f"{entry.entry_id}_last_boot"
+        self._restored_value: datetime | None = None
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
         if (last_state := await self.async_get_last_state()) is not None:
-            self._restored_value = last_state.state
+            self._restored_value = dt_util.parse_datetime(last_state.state)
 
     @property
-    def native_value(self) -> int | str | None:
+    def native_value(self) -> datetime | None:
         printer = self.coordinator.data.printer
         if printer is not None:
-            return printer.info.uptime
+            return printer.booted_at
         return self._restored_value

@@ -8,6 +8,7 @@ auffallen, sobald device_info tatsaechlich aufgerufen wird.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -16,9 +17,9 @@ from pyipp.models import Info, Marker, Printer, State
 
 from custom_components.ipp_advanced.coordinator import IPPAdvancedData
 from custom_components.ipp_advanced.sensor import (
+    IPPAdvancedLastBootSensor,
     IPPAdvancedMarkerSensor,
     IPPAdvancedPrinterStateSensor,
-    IPPAdvancedUptimeSensor,
 )
 
 
@@ -158,22 +159,24 @@ def test_marker_sensor_treats_negative_level_as_unknown():
     assert sensor.native_value is None
 
 
-def test_uptime_sensor_reports_seconds_since_last_boot():
+def test_last_boot_sensor_reports_booted_at_as_timestamp():
+    booted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     printer = _make_printer()
+    printer.booted_at = booted_at
     coordinator = _make_coordinator(printer)
-    sensor = IPPAdvancedUptimeSensor(coordinator, _make_entry())
+    sensor = IPPAdvancedLastBootSensor(coordinator, _make_entry())
 
-    assert sensor.native_value == 100
-    assert sensor.device_class == SensorDeviceClass.DURATION
-    assert sensor.state_class == SensorStateClass.MEASUREMENT
+    assert sensor.native_value == booted_at
+    assert sensor.device_class == SensorDeviceClass.TIMESTAMP
 
 
-def test_uptime_sensor_falls_back_to_restored_value_when_printer_missing():
+def test_last_boot_sensor_falls_back_to_restored_value_when_printer_missing():
     coordinator = _make_coordinator(printer=None)
-    sensor = IPPAdvancedUptimeSensor(coordinator, _make_entry())
-    sensor._restored_value = "4242"
+    sensor = IPPAdvancedLastBootSensor(coordinator, _make_entry())
+    restored = datetime(2025, 12, 31, 8, 0, 0, tzinfo=timezone.utc)
+    sensor._restored_value = restored
 
-    assert sensor.native_value == "4242"
+    assert sensor.native_value == restored
 
 
 def test_marker_sensor_falls_back_to_restored_value_when_printer_missing():
