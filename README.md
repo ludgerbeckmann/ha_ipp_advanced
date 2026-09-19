@@ -57,6 +57,26 @@ und Host/IP des Druckers eingeben. Für jeden Drucker separat wiederholen.
 - Ein Status-Sensor pro Drucker (`idle` / `processing` / `stopped` /
   `offline_cached`)
 
+## Benachrichtigungen
+
+Über das Zahnrad-Symbol am Integrations-Eintrag (Optionen) lässt sich je
+Drucker konfigurieren, bei welchen Problemen benachrichtigt werden soll:
+
+- Tinte/Toner leer oder wird knapp
+- Papier leer oder Papierstau
+- Abdeckung offen
+- Drucker gestoppt (Fehler) oder nicht erreichbar
+
+Für jeden ausgewählten Grund gibt es optional:
+
+- eine **Push-Benachrichtigung** an frei wählbare `notify`-Ziele (z. B.
+  `notify.mobile_app_<gerät>`)
+- eine **dauerhafte Benachrichtigung** in Home Assistant (Standard: an),
+  die automatisch verschwindet, sobald das Problem behoben ist
+
+Benachrichtigt wird nur beim *Auftreten* eines Problems, nicht bei jedem
+Abfrageintervall erneut, solange es weiter besteht.
+
 ## Aktionen
 
 - **IPP-Attribute abfragen** (`ipp_advanced.attribute_dump`): Fragt beim
