@@ -15,10 +15,12 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_BASE_PATH,
+    CONF_NOTIFY_MARKER_LOW_THRESHOLD,
     CONF_NOTIFY_PERSISTENT,
     CONF_NOTIFY_REASONS,
     CONF_NOTIFY_TARGETS,
     DEFAULT_BASE_PATH,
+    DEFAULT_NOTIFY_MARKER_LOW_THRESHOLD,
     DEFAULT_NOTIFY_PERSISTENT,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
@@ -27,6 +29,7 @@ from .const import (
     DOMAIN,
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
+    NOTIFY_MARKER_LOW_THRESHOLD_CHOICES,
     NOTIFY_REASONS,
 )
 
@@ -188,6 +191,26 @@ class IPPAdvancedOptionsFlow(config_entries.OptionsFlow):
                             mode=selector.SelectSelectorMode.LIST,
                             translation_key="notify_reason",
                         )
+                    ),
+                    vol.Optional(
+                        CONF_NOTIFY_MARKER_LOW_THRESHOLD,
+                        default=str(
+                            options.get(
+                                CONF_NOTIFY_MARKER_LOW_THRESHOLD,
+                                DEFAULT_NOTIFY_MARKER_LOW_THRESHOLD,
+                            )
+                        ),
+                    ): vol.All(
+                        selector.SelectSelector(
+                            selector.SelectSelectorConfig(
+                                options=[
+                                    selector.SelectOptionDict(value=str(value), label=f"{value} %")
+                                    for value in NOTIFY_MARKER_LOW_THRESHOLD_CHOICES
+                                ],
+                                mode=selector.SelectSelectorMode.DROPDOWN,
+                            )
+                        ),
+                        vol.Coerce(int),
                     ),
                     vol.Optional(
                         CONF_NOTIFY_TARGETS,

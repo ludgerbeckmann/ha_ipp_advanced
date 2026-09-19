@@ -24,6 +24,7 @@ from custom_components.ipp_advanced.config_flow import (
 )
 from custom_components.ipp_advanced.const import (
     CONF_BASE_PATH,
+    CONF_NOTIFY_MARKER_LOW_THRESHOLD,
     CONF_NOTIFY_PERSISTENT,
     CONF_NOTIFY_REASONS,
     CONF_NOTIFY_TARGETS,
@@ -73,6 +74,7 @@ async def test_options_flow_schema_offers_notify_settings():
 
     schema_keys = {str(key) for key in result["data_schema"].schema}
     assert CONF_NOTIFY_REASONS in schema_keys
+    assert CONF_NOTIFY_MARKER_LOW_THRESHOLD in schema_keys
     assert CONF_NOTIFY_TARGETS in schema_keys
     assert CONF_NOTIFY_PERSISTENT in schema_keys
 
@@ -84,6 +86,7 @@ async def test_options_flow_saves_notify_settings():
         {
             CONF_SCAN_INTERVAL: 60,
             CONF_NOTIFY_REASONS: [NOTIFY_REASON_MARKER_EMPTY],
+            CONF_NOTIFY_MARKER_LOW_THRESHOLD: 20,
             CONF_NOTIFY_TARGETS: ["notify.mobile_app_phone"],
             CONF_NOTIFY_PERSISTENT: False,
         }
@@ -91,8 +94,21 @@ async def test_options_flow_saves_notify_settings():
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_NOTIFY_REASONS] == [NOTIFY_REASON_MARKER_EMPTY]
+    assert result["data"][CONF_NOTIFY_MARKER_LOW_THRESHOLD] == 20
     assert result["data"][CONF_NOTIFY_TARGETS] == ["notify.mobile_app_phone"]
     assert result["data"][CONF_NOTIFY_PERSISTENT] is False
+
+
+async def test_options_flow_marker_low_threshold_schema_validates_choices():
+    """Der Schwellwert kommt als Dropdown mit festen Prozent-Stufen - die
+    Auswahl-Validierung (SelectSelector) + Coerce(int) muss einen der
+    definierten Werte akzeptieren und als int zurueckgeben."""
+    flow = _make_flow()
+
+    result = await flow.async_step_init()
+    validated = result["data_schema"]({CONF_SCAN_INTERVAL: 60, CONF_NOTIFY_MARKER_LOW_THRESHOLD: "20"})
+
+    assert validated[CONF_NOTIFY_MARKER_LOW_THRESHOLD] == 20
 
 
 def test_user_step_schema_offers_scan_interval():

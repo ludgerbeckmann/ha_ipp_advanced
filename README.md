@@ -62,7 +62,9 @@ und Host/IP des Druckers eingeben. Für jeden Drucker separat wiederholen.
 Über das Zahnrad-Symbol am Integrations-Eintrag (Optionen) lässt sich je
 Drucker konfigurieren, bei welchen Problemen benachrichtigt werden soll:
 
-- Tinte/Toner leer oder wird knapp
+- Tinte/Toner leer oder wird knapp (der Schwellwert für "wird knapp" ist
+  über ein Dropdown wählbar: 5/10/15/20/25/30 %, unabhängig vom oft sehr
+  niedrig angesetzten Herstellerwert)
 - Papier leer oder Papierstau
 - Abdeckung offen
 - Drucker gestoppt (Fehler) oder nicht erreichbar
