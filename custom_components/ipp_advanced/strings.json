@@ -40,6 +40,7 @@
         "data": {
           "scan_interval": "Abfrageintervall (Sekunden)",
           "notify_reasons": "Bei welchen Problemen benachrichtigen?",
+          "notify_marker_low_threshold": "Schwellwert für \"wird knapp\"",
           "notify_targets": "Push-Benachrichtigungsziele (notify-Entitäten)",
           "notify_persistent": "Dauerhafte Benachrichtigung in Home Assistant anzeigen"
         }

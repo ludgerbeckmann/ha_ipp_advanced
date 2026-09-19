@@ -17,9 +17,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 
 from .const import (
+    CONF_NOTIFY_MARKER_LOW_THRESHOLD,
     CONF_NOTIFY_PERSISTENT,
     CONF_NOTIFY_REASONS,
     CONF_NOTIFY_TARGETS,
+    DEFAULT_NOTIFY_MARKER_LOW_THRESHOLD,
     DEFAULT_NOTIFY_PERSISTENT,
     DOMAIN,
     NOTIFY_REASON_COVER_OPEN,
@@ -104,6 +106,9 @@ class IPPAdvancedNotificationManager:
         ):
             issues[NOTIFY_REASON_COVER_OPEN] = f"{name}: Abdeckung ist offen."
 
+        low_threshold = self.entry.options.get(
+            CONF_NOTIFY_MARKER_LOW_THRESHOLD, DEFAULT_NOTIFY_MARKER_LOW_THRESHOLD
+        )
         for marker in printer.markers:
             if marker.level < 0:
                 continue  # Füllstand unbekannt - siehe sensor.py.
@@ -111,7 +116,7 @@ class IPPAdvancedNotificationManager:
                 issues[f"{NOTIFY_REASON_MARKER_EMPTY}:{marker.marker_id}"] = (
                     f"{name}: {marker.name} ist leer."
                 )
-            elif NOTIFY_REASON_MARKER_LOW in enabled and marker.level <= marker.low_level:
+            elif NOTIFY_REASON_MARKER_LOW in enabled and marker.level <= low_threshold:
                 issues[f"{NOTIFY_REASON_MARKER_LOW}:{marker.marker_id}"] = (
                     f"{name}: {marker.name} wird knapp ({marker.level}%)."
                 )

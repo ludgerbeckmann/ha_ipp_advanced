@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 from pyipp.models import Info, Marker, Printer, State
 
 from custom_components.ipp_advanced.const import (
+    CONF_NOTIFY_MARKER_LOW_THRESHOLD,
     CONF_NOTIFY_PERSISTENT,
     CONF_NOTIFY_REASONS,
     CONF_NOTIFY_TARGETS,
@@ -89,14 +90,35 @@ def test_marker_empty_detected_when_enabled():
 
 
 def test_marker_low_but_not_empty():
-    printer = _make_printer(marker_level=5, marker_low_level=10)
+    # Der Marker-eigene low_level (hier absichtlich abweichend gesetzt) wird
+    # NICHT mehr verwendet - der Schwellwert kommt aus den Optionen.
+    printer = _make_printer(marker_level=5, marker_low_level=1)
     manager, _hass = _make_manager(
-        {CONF_NOTIFY_REASONS: [NOTIFY_REASON_MARKER_EMPTY, NOTIFY_REASON_MARKER_LOW]}, printer
+        {
+            CONF_NOTIFY_REASONS: [NOTIFY_REASON_MARKER_EMPTY, NOTIFY_REASON_MARKER_LOW],
+            CONF_NOTIFY_MARKER_LOW_THRESHOLD: 10,
+        },
+        printer,
     )
 
     issues = manager._collect_active_issues()
     assert f"{NOTIFY_REASON_MARKER_LOW}:1" in issues
     assert f"{NOTIFY_REASON_MARKER_EMPTY}:1" not in issues
+
+
+def test_marker_low_threshold_is_configurable():
+    printer = _make_printer(marker_level=15)
+
+    manager_default, _hass = _make_manager(
+        {CONF_NOTIFY_REASONS: [NOTIFY_REASON_MARKER_LOW]}, printer
+    )
+    assert f"{NOTIFY_REASON_MARKER_LOW}:1" not in manager_default._collect_active_issues()
+
+    manager_custom, _hass = _make_manager(
+        {CONF_NOTIFY_REASONS: [NOTIFY_REASON_MARKER_LOW], CONF_NOTIFY_MARKER_LOW_THRESHOLD: 20},
+        printer,
+    )
+    assert f"{NOTIFY_REASON_MARKER_LOW}:1" in manager_custom._collect_active_issues()
 
 
 def test_marker_level_unknown_is_ignored():

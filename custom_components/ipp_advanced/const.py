@@ -30,7 +30,14 @@ ATTR_PRINTER_INFO = "printer_info"
 CONF_NOTIFY_TARGETS = "notify_targets"
 CONF_NOTIFY_PERSISTENT = "notify_persistent"
 CONF_NOTIFY_REASONS = "notify_reasons"
+CONF_NOTIFY_MARKER_LOW_THRESHOLD = "notify_marker_low_threshold"
 DEFAULT_NOTIFY_PERSISTENT = True
+# Standard-Schwellwert für "wird knapp" (%), falls nichts anderes gewählt
+# wurde - ersetzt den vom Drucker selbst gemeldeten marker.low_level, damit
+# der Zeitpunkt der Vorwarnung unabhängig vom (oft sehr niedrig
+# angesetzten) Herstellerwert einstellbar ist.
+DEFAULT_NOTIFY_MARKER_LOW_THRESHOLD = 10
+NOTIFY_MARKER_LOW_THRESHOLD_CHOICES = [5, 10, 15, 20, 25, 30]
 
 NOTIFY_REASON_MARKER_EMPTY = "marker_empty"
 NOTIFY_REASON_MARKER_LOW = "marker_low"
