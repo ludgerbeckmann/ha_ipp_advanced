@@ -10,7 +10,7 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SCAN_INTERVAL, CONF_SSL, CONF_VERIFY_SSL
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.data_entry_flow import FlowResult, section
 from homeassistant.helpers import selector
 
 from .const import (
@@ -31,6 +31,7 @@ from .const import (
     MIN_SCAN_INTERVAL,
     NOTIFY_MARKER_LOW_THRESHOLD_CHOICES,
     NOTIFY_REASONS,
+    SECTION_NOTIFICATIONS,
 )
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
@@ -170,7 +171,14 @@ class IPPAdvancedOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Abfrageintervall und Benachrichtigungen verwalten."""
         if user_input is not None:
-            return self.async_create_entry(data=user_input)
+            # Die Benachrichtigungs-Felder stecken (wegen der eigenen
+            # Überschrift/Box im Formular) in einer verschachtelten Section -
+            # für die Ablage in entry.options wieder auf die gewohnte flache
+            # Struktur zurückführen (siehe notifications.py: liest z.B.
+            # entry.options.get(CONF_NOTIFY_REASONS, ...) direkt, nicht
+            # verschachtelt).
+            notification_options = user_input.pop(SECTION_NOTIFICATIONS)
+            return self.async_create_entry(data={**user_input, **notification_options})
 
         options = self.config_entry.options
         return self.async_show_form(
@@ -181,47 +189,58 @@ class IPPAdvancedOptionsFlow(config_entries.OptionsFlow):
                         CONF_SCAN_INTERVAL,
                         default=options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
                     ): SCAN_INTERVAL_VALIDATOR,
-                    vol.Optional(
-                        CONF_NOTIFY_REASONS,
-                        default=options.get(CONF_NOTIFY_REASONS, []),
-                    ): selector.SelectSelector(
-                        selector.SelectSelectorConfig(
-                            options=NOTIFY_REASONS,
-                            multiple=True,
-                            mode=selector.SelectSelectorMode.LIST,
-                            translation_key="notify_reason",
-                        )
-                    ),
-                    vol.Optional(
-                        CONF_NOTIFY_MARKER_LOW_THRESHOLD,
-                        default=str(
-                            options.get(
-                                CONF_NOTIFY_MARKER_LOW_THRESHOLD,
-                                DEFAULT_NOTIFY_MARKER_LOW_THRESHOLD,
-                            )
+                    vol.Required(SECTION_NOTIFICATIONS): section(
+                        vol.Schema(
+                            {
+                                vol.Optional(
+                                    CONF_NOTIFY_REASONS,
+                                    default=options.get(CONF_NOTIFY_REASONS, []),
+                                ): selector.SelectSelector(
+                                    selector.SelectSelectorConfig(
+                                        options=NOTIFY_REASONS,
+                                        multiple=True,
+                                        mode=selector.SelectSelectorMode.LIST,
+                                        translation_key="notify_reason",
+                                    )
+                                ),
+                                vol.Optional(
+                                    CONF_NOTIFY_MARKER_LOW_THRESHOLD,
+                                    default=str(
+                                        options.get(
+                                            CONF_NOTIFY_MARKER_LOW_THRESHOLD,
+                                            DEFAULT_NOTIFY_MARKER_LOW_THRESHOLD,
+                                        )
+                                    ),
+                                ): vol.All(
+                                    selector.SelectSelector(
+                                        selector.SelectSelectorConfig(
+                                            options=[
+                                                selector.SelectOptionDict(
+                                                    value=str(value), label=f"{value} %"
+                                                )
+                                                for value in NOTIFY_MARKER_LOW_THRESHOLD_CHOICES
+                                            ],
+                                            mode=selector.SelectSelectorMode.DROPDOWN,
+                                        )
+                                    ),
+                                    vol.Coerce(int),
+                                ),
+                                vol.Optional(
+                                    CONF_NOTIFY_TARGETS,
+                                    default=options.get(CONF_NOTIFY_TARGETS, []),
+                                ): selector.EntitySelector(
+                                    selector.EntitySelectorConfig(domain="notify", multiple=True)
+                                ),
+                                vol.Optional(
+                                    CONF_NOTIFY_PERSISTENT,
+                                    default=options.get(
+                                        CONF_NOTIFY_PERSISTENT, DEFAULT_NOTIFY_PERSISTENT
+                                    ),
+                                ): bool,
+                            }
                         ),
-                    ): vol.All(
-                        selector.SelectSelector(
-                            selector.SelectSelectorConfig(
-                                options=[
-                                    selector.SelectOptionDict(value=str(value), label=f"{value} %")
-                                    for value in NOTIFY_MARKER_LOW_THRESHOLD_CHOICES
-                                ],
-                                mode=selector.SelectSelectorMode.DROPDOWN,
-                            )
-                        ),
-                        vol.Coerce(int),
+                        {"collapsed": False},
                     ),
-                    vol.Optional(
-                        CONF_NOTIFY_TARGETS,
-                        default=options.get(CONF_NOTIFY_TARGETS, []),
-                    ): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="notify", multiple=True)
-                    ),
-                    vol.Optional(
-                        CONF_NOTIFY_PERSISTENT,
-                        default=options.get(CONF_NOTIFY_PERSISTENT, DEFAULT_NOTIFY_PERSISTENT),
-                    ): bool,
                 }
             ),
         )

@@ -7,5 +7,5 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/ludgerbeckmann/ha_ipp_advanced/issues",
   "requirements": ["pyipp==0.17.0"],
-  "version": "0.12.3"
+  "version": "0.12.4"
 }

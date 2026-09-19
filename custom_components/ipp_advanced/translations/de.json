@@ -38,14 +38,21 @@
       "init": {
         "title": "IPP Advanced Optionen",
         "data": {
-          "scan_interval": "Abfrageintervall (Sekunden)",
-          "notify_reasons": "Bei welchen Problemen benachrichtigen?",
-          "notify_marker_low_threshold": "Schwellwert für die Tinte/Toner-Warnung",
-          "notify_targets": "Push-Benachrichtigungsziele (notify-Entitäten)",
-          "notify_persistent": "Dauerhafte Benachrichtigung in Home Assistant anzeigen"
+          "scan_interval": "Abfrageintervall (Sekunden)"
         },
-        "data_description": {
-          "notify_marker_low_threshold": "Ab welchem Füllstand (%) die oben ausgewählte \"Tinte/Toner Warnung\" ausgelöst wird."
+        "sections": {
+          "notifications": {
+            "name": "Benachrichtigungen",
+            "data": {
+              "notify_reasons": "Bei welchen Problemen benachrichtigen?",
+              "notify_marker_low_threshold": "Schwellwert für die Tinte/Toner-Warnung",
+              "notify_targets": "Push-Benachrichtigungsziele (notify-Entitäten)",
+              "notify_persistent": "Dauerhafte Benachrichtigung in Home Assistant anzeigen"
+            },
+            "data_description": {
+              "notify_marker_low_threshold": "Ab welchem Füllstand (%) die oben ausgewählte \"Tinte/Toner Warnung\" ausgelöst wird."
+            }
+          }
         }
       }
     }
