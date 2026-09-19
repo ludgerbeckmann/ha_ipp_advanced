@@ -51,7 +51,7 @@
     "notify_reason": {
       "options": {
         "marker_empty": "Tinte/Toner leer",
-        "marker_low": "Tinte/Toner wird knapp",
+        "marker_low": "Tinte/Toner Warnung",
         "media_empty": "Papier leer",
         "media_jam": "Papierstau",
         "cover_open": "Abdeckung offen",
