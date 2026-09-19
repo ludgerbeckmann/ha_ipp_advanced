@@ -22,7 +22,13 @@ from custom_components.ipp_advanced.config_flow import (
     IPPAdvancedOptionsFlow,
     STEP_USER_DATA_SCHEMA_WITH_SCAN_INTERVAL,
 )
-from custom_components.ipp_advanced.const import CONF_BASE_PATH
+from custom_components.ipp_advanced.const import (
+    CONF_BASE_PATH,
+    CONF_NOTIFY_PERSISTENT,
+    CONF_NOTIFY_REASONS,
+    CONF_NOTIFY_TARGETS,
+    NOTIFY_REASON_MARKER_EMPTY,
+)
 
 
 def _make_flow(entry_options: dict | None = None) -> IPPAdvancedOptionsFlow:
@@ -58,6 +64,35 @@ async def test_options_flow_saves_new_scan_interval():
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"] == {CONF_SCAN_INTERVAL: 120}
+
+
+async def test_options_flow_schema_offers_notify_settings():
+    flow = _make_flow()
+
+    result = await flow.async_step_init()
+
+    schema_keys = {str(key) for key in result["data_schema"].schema}
+    assert CONF_NOTIFY_REASONS in schema_keys
+    assert CONF_NOTIFY_TARGETS in schema_keys
+    assert CONF_NOTIFY_PERSISTENT in schema_keys
+
+
+async def test_options_flow_saves_notify_settings():
+    flow = _make_flow()
+
+    result = await flow.async_step_init(
+        {
+            CONF_SCAN_INTERVAL: 60,
+            CONF_NOTIFY_REASONS: [NOTIFY_REASON_MARKER_EMPTY],
+            CONF_NOTIFY_TARGETS: ["notify.mobile_app_phone"],
+            CONF_NOTIFY_PERSISTENT: False,
+        }
+    )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_NOTIFY_REASONS] == [NOTIFY_REASON_MARKER_EMPTY]
+    assert result["data"][CONF_NOTIFY_TARGETS] == ["notify.mobile_app_phone"]
+    assert result["data"][CONF_NOTIFY_PERSISTENT] is False
 
 
 def test_user_step_schema_offers_scan_interval():

@@ -38,8 +38,24 @@
       "init": {
         "title": "IPP Advanced Optionen",
         "data": {
-          "scan_interval": "Abfrageintervall (Sekunden)"
+          "scan_interval": "Abfrageintervall (Sekunden)",
+          "notify_reasons": "Bei welchen Problemen benachrichtigen?",
+          "notify_targets": "Push-Benachrichtigungsziele (notify-Entitäten)",
+          "notify_persistent": "Dauerhafte Benachrichtigung in Home Assistant anzeigen"
         }
+      }
+    }
+  },
+  "selector": {
+    "notify_reason": {
+      "options": {
+        "marker_empty": "Tinte/Toner leer",
+        "marker_low": "Tinte/Toner wird knapp",
+        "media_empty": "Papier leer",
+        "media_jam": "Papierstau",
+        "cover_open": "Abdeckung offen",
+        "printer_stopped": "Drucker gestoppt (Fehler)",
+        "printer_unreachable": "Drucker nicht erreichbar"
       }
     }
   },

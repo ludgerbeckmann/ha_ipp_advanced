@@ -22,6 +22,7 @@ from homeassistant.helpers import service as service_helper
 
 from .const import CONF_BASE_PATH, DEFAULT_BASE_PATH, DEFAULT_SCAN_INTERVAL, DOMAIN
 from .coordinator import IPPAdvancedDataUpdateCoordinator
+from .notifications import IPPAdvancedNotificationManager
 
 PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
 
@@ -49,6 +50,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
 
     entry.runtime_data = coordinator
+
+    # Benachrichtigungen bei Problemen wie leerem Toner/Papierstau -
+    # konfigurierbar über den Options Flow (Ziele + Gründe, siehe
+    # notifications.py). Einmal direkt nach dem ersten Poll auswerten
+    # (sonst würde ein schon beim Start vorliegendes Problem erst beim
+    # nächsten Poll bemerkt), danach bei jedem weiteren Update.
+    notification_manager = IPPAdvancedNotificationManager(hass, entry, coordinator)
+    notification_manager.async_handle_update()
+    entry.async_on_unload(coordinator.async_add_listener(notification_manager.async_handle_update))
+    entry.async_on_unload(notification_manager.async_unload)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     # Bei einer Options-Änderung (z.B. neues Abfrageintervall) oder einer

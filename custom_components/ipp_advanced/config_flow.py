@@ -11,10 +11,15 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SCAN_INTERVAL, CONF_SSL, CONF_VERIFY_SSL
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import selector
 
 from .const import (
     CONF_BASE_PATH,
+    CONF_NOTIFY_PERSISTENT,
+    CONF_NOTIFY_REASONS,
+    CONF_NOTIFY_TARGETS,
     DEFAULT_BASE_PATH,
+    DEFAULT_NOTIFY_PERSISTENT,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_TLS,
@@ -22,6 +27,7 @@ from .const import (
     DOMAIN,
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
+    NOTIFY_REASONS,
 )
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
@@ -159,20 +165,40 @@ class IPPAdvancedOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Abfrageintervall verwalten."""
+        """Abfrageintervall und Benachrichtigungen verwalten."""
         if user_input is not None:
             return self.async_create_entry(data=user_input)
 
+        options = self.config_entry.options
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
                     vol.Optional(
                         CONF_SCAN_INTERVAL,
-                        default=self.config_entry.options.get(
-                            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
-                        ),
-                    ): SCAN_INTERVAL_VALIDATOR
+                        default=options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+                    ): SCAN_INTERVAL_VALIDATOR,
+                    vol.Optional(
+                        CONF_NOTIFY_REASONS,
+                        default=options.get(CONF_NOTIFY_REASONS, []),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=NOTIFY_REASONS,
+                            multiple=True,
+                            mode=selector.SelectSelectorMode.LIST,
+                            translation_key="notify_reason",
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_NOTIFY_TARGETS,
+                        default=options.get(CONF_NOTIFY_TARGETS, []),
+                    ): selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="notify", multiple=True)
+                    ),
+                    vol.Optional(
+                        CONF_NOTIFY_PERSISTENT,
+                        default=options.get(CONF_NOTIFY_PERSISTENT, DEFAULT_NOTIFY_PERSISTENT),
+                    ): bool,
                 }
             ),
         )
