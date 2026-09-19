@@ -29,6 +29,7 @@ from custom_components.ipp_advanced.const import (
     CONF_NOTIFY_REASONS,
     CONF_NOTIFY_TARGETS,
     NOTIFY_REASON_MARKER_EMPTY,
+    SECTION_NOTIFICATIONS,
 )
 
 
@@ -61,22 +62,34 @@ async def test_options_flow_shows_form_with_current_scan_interval():
 async def test_options_flow_saves_new_scan_interval():
     flow = _make_flow()
 
-    result = await flow.async_step_init({CONF_SCAN_INTERVAL: 120})
+    result = await flow.async_step_init({CONF_SCAN_INTERVAL: 120, SECTION_NOTIFICATIONS: {}})
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"] == {CONF_SCAN_INTERVAL: 120}
 
 
-async def test_options_flow_schema_offers_notify_settings():
+async def test_options_flow_schema_groups_notify_settings_under_section():
+    # Die Benachrichtigungs-Einstellungen stecken bewusst in einer eigenen
+    # Section (mit Überschrift "Benachrichtigungen" im Formular), damit sie
+    # optisch von den übrigen Einstellungen (Abfrageintervall) abgegrenzt
+    # sind - siehe const.py: SECTION_NOTIFICATIONS.
     flow = _make_flow()
 
     result = await flow.async_step_init()
 
-    schema_keys = {str(key) for key in result["data_schema"].schema}
-    assert CONF_NOTIFY_REASONS in schema_keys
-    assert CONF_NOTIFY_MARKER_LOW_THRESHOLD in schema_keys
-    assert CONF_NOTIFY_TARGETS in schema_keys
-    assert CONF_NOTIFY_PERSISTENT in schema_keys
+    top_level_keys = {str(key) for key in result["data_schema"].schema}
+    assert SECTION_NOTIFICATIONS in top_level_keys
+    assert CONF_NOTIFY_REASONS not in top_level_keys
+
+    section_marker = next(
+        key for key in result["data_schema"].schema if str(key) == SECTION_NOTIFICATIONS
+    )
+    section_schema = result["data_schema"].schema[section_marker].schema.schema
+    section_keys = {str(key) for key in section_schema}
+    assert CONF_NOTIFY_REASONS in section_keys
+    assert CONF_NOTIFY_MARKER_LOW_THRESHOLD in section_keys
+    assert CONF_NOTIFY_TARGETS in section_keys
+    assert CONF_NOTIFY_PERSISTENT in section_keys
 
 
 async def test_options_flow_saves_notify_settings():
@@ -85,14 +98,19 @@ async def test_options_flow_saves_notify_settings():
     result = await flow.async_step_init(
         {
             CONF_SCAN_INTERVAL: 60,
-            CONF_NOTIFY_REASONS: [NOTIFY_REASON_MARKER_EMPTY],
-            CONF_NOTIFY_MARKER_LOW_THRESHOLD: 20,
-            CONF_NOTIFY_TARGETS: ["notify.mobile_app_phone"],
-            CONF_NOTIFY_PERSISTENT: False,
+            SECTION_NOTIFICATIONS: {
+                CONF_NOTIFY_REASONS: [NOTIFY_REASON_MARKER_EMPTY],
+                CONF_NOTIFY_MARKER_LOW_THRESHOLD: 20,
+                CONF_NOTIFY_TARGETS: ["notify.mobile_app_phone"],
+                CONF_NOTIFY_PERSISTENT: False,
+            },
         }
     )
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
+    # Fuer die Ablage in entry.options wird die Section wieder flach
+    # gemacht - notifications.py liest diese Keys direkt von options.
+    assert SECTION_NOTIFICATIONS not in result["data"]
     assert result["data"][CONF_NOTIFY_REASONS] == [NOTIFY_REASON_MARKER_EMPTY]
     assert result["data"][CONF_NOTIFY_MARKER_LOW_THRESHOLD] == 20
     assert result["data"][CONF_NOTIFY_TARGETS] == ["notify.mobile_app_phone"]
@@ -106,9 +124,14 @@ async def test_options_flow_marker_low_threshold_schema_validates_choices():
     flow = _make_flow()
 
     result = await flow.async_step_init()
-    validated = result["data_schema"]({CONF_SCAN_INTERVAL: 60, CONF_NOTIFY_MARKER_LOW_THRESHOLD: "20"})
+    validated = result["data_schema"](
+        {
+            CONF_SCAN_INTERVAL: 60,
+            SECTION_NOTIFICATIONS: {CONF_NOTIFY_MARKER_LOW_THRESHOLD: "20"},
+        }
+    )
 
-    assert validated[CONF_NOTIFY_MARKER_LOW_THRESHOLD] == 20
+    assert validated[SECTION_NOTIFICATIONS][CONF_NOTIFY_MARKER_LOW_THRESHOLD] == 20
 
 
 def test_user_step_schema_offers_scan_interval():

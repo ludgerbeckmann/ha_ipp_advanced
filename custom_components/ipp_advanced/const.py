@@ -27,6 +27,9 @@ ATTR_PRINTER_INFO = "printer_info"
 
 # Optionen für die Benachrichtigungsfunktion (siehe notifications.py und der
 # Options Flow in config_flow.py) - je Eintrag/Drucker konfigurierbar.
+# Im Options-Formular optisch (mit eigener Überschrift) von den übrigen
+# Einstellungen abgegrenzt - siehe homeassistant.data_entry_flow.section.
+SECTION_NOTIFICATIONS = "notifications"
 CONF_NOTIFY_TARGETS = "notify_targets"
 CONF_NOTIFY_PERSISTENT = "notify_persistent"
 CONF_NOTIFY_REASONS = "notify_reasons"
