@@ -1,5 +1,4 @@
-"""Gemeinsame Entity-Basisklasse für IPP Advanced (von sensor.py und
-binary_sensor.py verwendet)."""
+"""Gemeinsame Entity-Basisklasse für IPP Advanced (von sensor.py verwendet)."""
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry

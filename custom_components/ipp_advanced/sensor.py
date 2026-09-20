@@ -112,7 +112,7 @@ class IPPAdvancedMarkerSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEntity
 
 
 class IPPAdvancedPrinterStateSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEntity):
-    """Sensor für den generellen Druckerstatus (idle/processing/stopped/offline)."""
+    """Sensor für den generellen Druckerstatus (idle/processing/stopped/unreachable)."""
 
     _attr_translation_key = "printer_state"
     _attr_icon = "mdi:printer"
@@ -120,7 +120,7 @@ class IPPAdvancedPrinterStateSensor(IPPAdvancedBaseEntity, RestoreEntity, Sensor
     # Rohwerte, die native_value liefern kann - Home Assistant übersetzt diese
     # über strings.json/translations/*.json (entity.sensor.printer_state.state.*)
     # automatisch in die jeweilige Sprache der Oberfläche.
-    _attr_options = ["idle", "printing", "stopped"]
+    _attr_options = ["idle", "printing", "stopped", "unreachable"]
 
     def __init__(
         self,
@@ -138,12 +138,15 @@ class IPPAdvancedPrinterStateSensor(IPPAdvancedBaseEntity, RestoreEntity, Sensor
 
     @property
     def native_value(self) -> str | None:
-        printer = self.coordinator.data.printer
-        if printer is not None:
-            # Zeigt immer den zuletzt bekannten echten IPP-Status - ob das
-            # gerade live oder zwischengespeichert ist, sagt der separate
-            # "Erreichbar"-Binärsensor (binary_sensor.py), nicht dieser Sensor.
-            return printer.state.printer_state
+        data = self.coordinator.data
+        if data.printer is not None:
+            # Ohne aktuellen Poll den zwischengespeicherten Status (z.B.
+            # "Leerlauf") anzuzeigen wäre irreführend, wenn der Drucker in
+            # Wirklichkeit einfach ausgeschaltet ist - stattdessen "Nicht
+            # erreichbar" zeigen.
+            if not data.last_update_success:
+                return "unreachable"
+            return data.printer.state.printer_state
         return self._restored_value
 
     @property

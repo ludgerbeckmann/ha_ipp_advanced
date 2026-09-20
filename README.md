@@ -28,8 +28,11 @@ Heimnetz der Normalfall ist.
    wiederhergestellt, bis der erste erfolgreiche Poll wieder frische Daten
    liefert.
 
-Ein zusätzlicher Statuswert `offline_cached` macht transparent, wenn ein
-angezeigter Wert nicht live, sondern zwischengespeichert ist.
+Der Status-Sensor zeigt dabei `unreachable`, sobald der aktuelle Poll
+fehlgeschlagen ist - so bleibt sichtbar, dass gerade keine Verbindung
+besteht, statt weiterhin einen veralteten Status wie "Leerlauf" vorzugaukeln.
+Verbrauchsmaterial-Sensoren behalten in diesem Fall einfach ihren letzten
+bekannten Wert.
 
 ## Installation
 
@@ -54,8 +57,8 @@ und Host/IP des Druckers eingeben. Für jeden Drucker separat wiederholen.
 
 - Ein Sensor pro Verbrauchsmaterial (z. B. `sensor.drucker_wohnzimmer_toner_schwarz`)
   mit Füllstand in %
-- Ein Status-Sensor pro Drucker (`idle` / `processing` / `stopped` /
-  `offline_cached`)
+- Ein Status-Sensor pro Drucker (`idle` / `printing` / `stopped` / `unreachable`)
+- Ein Sensor für den Zeitpunkt des letzten Neustarts des Druckers
 
 ## Benachrichtigungen
 
@@ -92,6 +95,11 @@ Abfrageintervall erneut, solange es weiter besteht.
 
 ## Bekannte Einschränkungen
 
+- Der frühere separate "Verbindungsstatus"-Binärsensor wurde entfernt - der
+  Status-Sensor deckt das jetzt selbst über den Wert `unreachable` ab. Beim
+  Update bleibt die alte Entity als `unavailable` in der Entitätenliste
+  zurück und kann manuell gelöscht werden (Einstellungen → Geräte &
+  Dienste → Entitäten).
 - Wurde der Drucker seit dem letzten HA-Neustart noch nie erfolgreich
   ausgelesen, gibt es keinen wiederherstellbaren Wert – die Entity ist dann
   vorübergehend `unavailable`, bis der erste erfolgreiche Poll stattfindet.
