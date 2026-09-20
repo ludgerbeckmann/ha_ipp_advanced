@@ -46,7 +46,7 @@
             "data": {
               "notify_reasons": "Bei welchen Problemen benachrichtigen?",
               "notify_marker_low_threshold": "Schwellwert für die Tinte/Toner-Warnung",
-              "notify_targets": "Push-Benachrichtigungsziele (notify-Entitäten)",
+              "notify_targets": "Push-Benachrichtigungsziele",
               "notify_persistent": "Dauerhafte Benachrichtigung in Home Assistant anzeigen"
             },
             "data_description": {
