@@ -81,7 +81,7 @@
         }
       },
       "last_boot": {
-        "name": "Letzter Neustart"
+        "name": "Letzter Start"
       }
     }
   }

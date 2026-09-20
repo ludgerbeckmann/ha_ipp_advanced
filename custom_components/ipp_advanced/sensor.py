@@ -164,7 +164,12 @@ class IPPAdvancedPrinterStateSensor(IPPAdvancedBaseEntity, RestoreEntity, Sensor
 
 
 class IPPAdvancedLastBootSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEntity):
-    """Sensor für den Zeitpunkt des letzten Neustarts des Druckers.
+    """Sensor für den Zeitpunkt des letzten bekannten Starts des Druckers.
+
+    "Letzter Start" statt "Letzter Neustart" im Namen - Letzteres klingt so,
+    als liefe der Drucker gerade; der Wert bleibt aber unverändert stehen,
+    solange der Drucker nicht erreichbar ist (siehe printer_state, das dann
+    "unreachable" zeigt).
 
     Ein Timestamp-Sensor statt einer laufenden Sekundenzahl - das ist auch
     der Ansatz von Home Assistants eigenen system_monitor-/uptime-

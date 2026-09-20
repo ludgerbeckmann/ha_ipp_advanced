@@ -58,7 +58,8 @@ und Host/IP des Druckers eingeben. Für jeden Drucker separat wiederholen.
 - Ein Sensor pro Verbrauchsmaterial (z. B. `sensor.drucker_wohnzimmer_toner_schwarz`)
   mit Füllstand in %
 - Ein Status-Sensor pro Drucker (`idle` / `printing` / `stopped` / `unreachable`)
-- Ein Sensor für den Zeitpunkt des letzten Neustarts des Druckers
+- Ein Sensor für den Zeitpunkt des letzten bekannten Starts des Druckers
+  ("Letzter Start")
 
 ## Benachrichtigungen
 
