@@ -76,16 +76,12 @@
         "state": {
           "idle": "Leerlauf",
           "printing": "Druckt",
-          "stopped": "Gestoppt"
+          "stopped": "Gestoppt",
+          "unreachable": "Nicht erreichbar"
         }
       },
       "last_boot": {
         "name": "Letzter Neustart"
-      }
-    },
-    "binary_sensor": {
-      "reachable": {
-        "name": "Verbindungsstatus"
       }
     }
   }

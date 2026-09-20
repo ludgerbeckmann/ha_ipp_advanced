@@ -91,15 +91,21 @@ def test_state_sensor_reports_live_state():
     assert sensor.native_value == "printing"
 
 
-def test_state_sensor_reports_real_state_even_when_stale():
-    # Seit der Aufteilung in einen separaten "Erreichbar"-Binärsensor
-    # (binary_sensor.py) zeigt dieser Sensor immer den echten IPP-Status -
-    # live oder zwischengespeichert macht dafuer keinen Unterschied mehr.
+def test_state_sensor_reports_unreachable_when_last_poll_failed():
+    # Ohne aktuellen Poll den zwischengespeicherten Status ("Leerlauf")
+    # anzuzeigen waere irrefuehrend, wenn der Drucker in Wirklichkeit
+    # ausgeschaltet ist - stattdessen "unreachable" zeigen (siehe
+    # entity.sensor.printer_state.state.unreachable in strings.json).
     printer = _make_printer(state="idle")
     coordinator = _make_coordinator(printer, last_update_success=False)
     sensor = IPPAdvancedPrinterStateSensor(coordinator, _make_entry())
 
-    assert sensor.native_value == "idle"
+    assert sensor.native_value == "unreachable"
+
+
+def test_state_sensor_options_include_unreachable():
+    sensor = IPPAdvancedPrinterStateSensor(_make_coordinator(_make_printer()), _make_entry())
+    assert "unreachable" in sensor.options
 
 
 def test_state_sensor_exposes_state_reasons():
