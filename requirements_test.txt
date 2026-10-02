@@ -5,4 +5,4 @@
 # Transitiv-Abhängigkeiten die jeweils neuesten, teils inkompatiblen
 # Versionen aufgelöst hat.
 pytest-homeassistant-custom-component
-aioipp==0.18.1
+aioipp==0.19.3

@@ -10,7 +10,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from pyipp.models import Counters, Info, Marker, Printer, State
+from pyipp.models import Counters, Info, Marker, Printer, State, Status
 
 from custom_components.ipp_advanced.const import (
     CONF_NOTIFY_MARKER_LOW_THRESHOLD,
@@ -56,6 +56,9 @@ def _make_printer(
             )
         ],
         state=State(printer_state=state, reasons=reasons, message=message),
+        status=Status(accepting_jobs=None, queued_jobs=None, alerts=[], media_ready=[]),
+        input_trays=[],
+        output_trays=[],
         uris=[],
         booted_at=None,
     )

@@ -113,9 +113,8 @@ Abfrageintervall erneut, solange es weiter besteht.
   `aioipp`-Bibliothek (einem gepflegten Fork von `pyipp`) und nicht mit der
   Home-Assistant-Core-Integration verknüpft; API-Änderungen dort müssen
   manuell nachgezogen werden.
-- `aioipp` ab Version 0.19 verlangt Python ≥3.14, daher ist hier bewusst
-  `aioipp==0.18.1` eingetragen (letzte Version mit Python-3.11-Unterstützung,
-  enthält die Seitenzähler-Funktion aber bereits vollständig).
+- Setzt Python ≥3.14 voraus (genau wie `aioipp` und Home Assistant Core
+  selbst seit Version 2026.3).
 
 ## Lizenz
 

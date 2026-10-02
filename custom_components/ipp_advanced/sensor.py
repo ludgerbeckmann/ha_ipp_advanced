@@ -34,12 +34,13 @@ async def async_setup_entry(
         entities.append(IPPAdvancedMarkerSensor(coordinator, entry, marker.marker_id))
 
     # Seitenzähler-Sensoren: nicht jeder Drucker meldet diese IPP-Attribute
-    # (printer-pages-completed etc.) - pyipp liefert dann None bzw. einen
-    # leeren impressions_completed_col. Nur anlegen, was der Drucker beim
+    # (printer-pages-completed etc.) - "supported" listet genau die
+    # Zähler auf, die der Drucker überhaupt liefert (auch wenn der
+    # aktuelle Wert zufällig None ist). Nur anlegen, was der Drucker beim
     # ersten Poll tatsächlich unterstützt, analog zu den Marker-Sensoren
     # oben.
     counters = printer.counters
-    if counters.pages_completed is not None:
+    if "pages_completed" in counters.supported:
         entities.append(IPPAdvancedPagesCompletedSensor(coordinator, entry))
     if "full-color" in counters.impressions_completed_col:
         entities.append(IPPAdvancedColorPagesCompletedSensor(coordinator, entry))

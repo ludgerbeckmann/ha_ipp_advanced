@@ -33,6 +33,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up IPP Advanced from a config entry."""
     coordinator = IPPAdvancedDataUpdateCoordinator(
         hass,
+        entry=entry,
         host=entry.data[CONF_HOST],
         port=entry.data[CONF_PORT],
         base_path=entry.data.get(CONF_BASE_PATH, DEFAULT_BASE_PATH),

@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from pyipp import IPP, IPPConnectionError, IPPConnectionUpgradeRequired, IPPError
-from pyipp.models import Counters, Info, Marker, Printer, State, Uri
+from pyipp.models import Counters, Info, Marker, Printer, State, Status, Tray, Uri
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -51,14 +51,15 @@ def _printer_to_storage(printer: Printer) -> dict[str, Any]:
 def _printer_from_storage(data: dict[str, Any]) -> Printer:
     """Gegenstück zu _printer_to_storage().
 
-    "counters" fehlt in Store-Dateien, die vor der Umstellung auf aioipp
-    geschrieben wurden - für solche Altbestände wird ein leerer Zähler
-    angenommen (siehe pages_completed-Sensoren in sensor.py, die dann
-    beim nächsten erfolgreichen Poll des Druckers ohnehin frische Werte
-    erhalten).
+    "counters"/"status"/"input_trays"/"output_trays" fehlen in Store-Dateien,
+    die vor der jeweiligen aioipp-Umstellung geschrieben wurden - für solche
+    Altbestände werden leere Werte angenommen (siehe pages_completed-Sensoren
+    in sensor.py, die dann beim nächsten erfolgreichen Poll des Druckers
+    ohnehin frische Werte erhalten).
     """
     booted_at = data["booted_at"]
     counters_data = data.get("counters") or {}
+    status_data = data.get("status") or {}
     return Printer(
         info=Info(**data["info"]),
         counters=Counters(
@@ -66,9 +67,19 @@ def _printer_from_storage(data: dict[str, Any]) -> Printer:
             impressions_completed_col=counters_data.get("impressions_completed_col", {}),
             pages_completed=counters_data.get("pages_completed"),
             media_sheets_completed=counters_data.get("media_sheets_completed"),
+            supported=tuple(counters_data.get("supported", ())),
         ),
         markers=[Marker(**marker) for marker in data["markers"]],
         state=State(**data["state"]),
+        status=Status(
+            accepting_jobs=status_data.get("accepting_jobs"),
+            queued_jobs=status_data.get("queued_jobs"),
+            alerts=status_data.get("alerts", []),
+            media_ready=status_data.get("media_ready", []),
+            supported=tuple(status_data.get("supported", ())),
+        ),
+        input_trays=[Tray(**tray) for tray in data.get("input_trays", [])],
+        output_trays=[Tray(**tray) for tray in data.get("output_trays", [])],
         uris=[Uri(**uri) for uri in data["uris"]],
         booted_at=datetime.fromisoformat(booted_at) if booted_at else None,
     )
@@ -83,6 +94,7 @@ class IPPAdvancedDataUpdateCoordinator(DataUpdateCoordinator[IPPAdvancedData]):
         self,
         hass: HomeAssistant,
         *,
+        entry: ConfigEntry,
         host: str,
         port: int,
         base_path: str = DEFAULT_BASE_PATH,
@@ -111,6 +123,7 @@ class IPPAdvancedDataUpdateCoordinator(DataUpdateCoordinator[IPPAdvancedData]):
         super().__init__(
             hass,
             LOGGER,
+            config_entry=entry,
             name=f"{host}",
             update_interval=timedelta(seconds=scan_interval),
         )

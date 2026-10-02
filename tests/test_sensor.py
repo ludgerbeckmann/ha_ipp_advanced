@@ -13,7 +13,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
-from pyipp.models import Counters, Info, Marker, Printer, State
+from pyipp.models import Counters, Info, Marker, Printer, State, Status
 
 from custom_components.ipp_advanced.coordinator import IPPAdvancedData
 from custom_components.ipp_advanced.sensor import (
@@ -29,13 +29,19 @@ from custom_components.ipp_advanced.sensor import (
 def _make_counters(
     pages_completed: int | None = None,
     impressions_completed_col: dict | None = None,
+    supported: tuple[str, ...] = (),
 ) -> Counters:
     return Counters(
         impressions_completed=None,
         impressions_completed_col=impressions_completed_col or {},
         pages_completed=pages_completed,
         media_sheets_completed=None,
+        supported=supported,
     )
+
+
+def _make_status() -> Status:
+    return Status(accepting_jobs=None, queued_jobs=None, alerts=[], media_ready=[])
 
 
 def _make_printer(
@@ -65,6 +71,9 @@ def _make_printer(
             )
         ],
         state=State(printer_state=state, reasons=reasons, message=message),
+        status=_make_status(),
+        input_trays=[],
+        output_trays=[],
         uris=[],
         booted_at=None,
     )
@@ -177,6 +186,9 @@ def test_marker_sensor_treats_negative_level_as_unknown():
             )
         ],
         state=State(printer_state="idle", reasons=None, message=None),
+        status=_make_status(),
+        input_trays=[],
+        output_trays=[],
         uris=[],
         booted_at=None,
     )
