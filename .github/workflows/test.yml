@@ -16,7 +16,7 @@ jobs:
       - name: Python einrichten
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.14"
 
       - name: Test-Abhängigkeiten installieren
         run: pip install -r requirements_test.txt

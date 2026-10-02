@@ -60,6 +60,11 @@ und Host/IP des Druckers eingeben. Für jeden Drucker separat wiederholen.
 - Ein Status-Sensor pro Drucker (`idle` / `printing` / `stopped` / `unreachable`)
 - Ein Sensor für den Zeitpunkt des letzten bekannten Starts des Druckers
   ("Letzter Start")
+- Seitenzähler-Sensoren ("Gesamtseiten", "Farbseiten", "Schwarz/Weiß-Seiten"):
+  werden nur angelegt, wenn der jeweilige Drucker die zugehörigen
+  IPP-Zählerattribute überhaupt meldet - bei Druckern ohne diese
+  Unterstützung (oder ohne Farbdruck) entfallen die entsprechenden Sensoren
+  einfach, ganz ohne manuelle Konfiguration
 
 ## Benachrichtigungen
 
@@ -105,8 +110,11 @@ Abfrageintervall erneut, solange es weiter besteht.
   ausgelesen, gibt es keinen wiederherstellbaren Wert – die Entity ist dann
   vorübergehend `unavailable`, bis der erste erfolgreiche Poll stattfindet.
 - Dieses Projekt ist ein unabhängiger Fork/Neuentwicklung auf Basis der
-  `pyipp`-Bibliothek und nicht mit der Home-Assistant-Core-Integration
-  verknüpft; API-Änderungen an `pyipp` müssen manuell nachgezogen werden.
+  `aioipp`-Bibliothek (einem gepflegten Fork von `pyipp`) und nicht mit der
+  Home-Assistant-Core-Integration verknüpft; API-Änderungen dort müssen
+  manuell nachgezogen werden.
+- Setzt Python ≥3.14 voraus (genau wie `aioipp` und Home Assistant Core
+  selbst seit Version 2026.3).
 
 ## Lizenz
 

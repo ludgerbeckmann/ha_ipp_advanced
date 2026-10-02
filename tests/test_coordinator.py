@@ -12,12 +12,13 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 from pyipp import IPPConnectionError
-from pyipp.models import Info, Marker, Printer, State
+from pyipp.models import Counters, Info, Marker, Printer, State, Status
 import pytest
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from custom_components.ipp_advanced.coordinator import (
     IPPAdvancedDataUpdateCoordinator,
+    _printer_from_storage,
     _printer_to_storage,
 )
 
@@ -29,6 +30,13 @@ def _make_printer(state: str = "idle") -> Printer:
             printer_name="test",
             printer_uri_supported=[],
             uptime=100,
+        ),
+        counters=Counters(
+            impressions_completed=None,
+            impressions_completed_col={},
+            pages_completed=42,
+            media_sheets_completed=None,
+            supported=("pages_completed",),
         ),
         markers=[
             Marker(
@@ -42,6 +50,9 @@ def _make_printer(state: str = "idle") -> Printer:
             )
         ],
         state=State(printer_state=state, reasons=None, message=None),
+        status=Status(accepting_jobs=None, queued_jobs=None, alerts=[], media_ready=[]),
+        input_trays=[],
+        output_trays=[],
         uris=[],
         booted_at=None,
     )
@@ -50,7 +61,7 @@ def _make_printer(state: str = "idle") -> Printer:
 def _make_coordinator() -> IPPAdvancedDataUpdateCoordinator:
     hass = MagicMock()
     coordinator = IPPAdvancedDataUpdateCoordinator(
-        hass, host="10.0.0.5", port=631, scan_interval=30
+        hass, entry=MagicMock(), host="10.0.0.5", port=631, scan_interval=30
     )
     coordinator.ipp = MagicMock()
     # Store schreibt echte Dateien über hass.async_add_executor_job - für
@@ -130,3 +141,34 @@ async def test_first_ever_failure_raises_update_failed():
 
     with pytest.raises(UpdateFailed):
         await coordinator._async_update_data()
+
+
+def test_printer_storage_roundtrip_keeps_counters():
+    printer = _make_printer()
+    stored = _printer_to_storage(printer)
+    restored = _printer_from_storage(stored)
+
+    assert restored.counters.pages_completed == 42
+    assert restored.counters.supported == ("pages_completed",)
+
+
+def test_printer_from_storage_defaults_counters_for_old_cache_files():
+    """Store-Dateien, die vor der Umstellung auf aioipp geschrieben wurden,
+    haben weder "counters" noch "status"/"input_trays"/"output_trays" -
+    das darf beim Laden nicht mit einem KeyError abbrechen (siehe
+    _printer_from_storage)."""
+    printer = _make_printer()
+    stored = _printer_to_storage(printer)
+    del stored["counters"]
+    del stored["status"]
+    del stored["input_trays"]
+    del stored["output_trays"]
+
+    restored = _printer_from_storage(stored)
+
+    assert restored.counters.pages_completed is None
+    assert restored.counters.impressions_completed_col == {}
+    assert restored.counters.supported == ()
+    assert restored.status.alerts == []
+    assert restored.input_trays == []
+    assert restored.output_trays == []

@@ -5,6 +5,7 @@ from datetime import datetime
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -31,6 +32,20 @@ async def async_setup_entry(
     # Für jedes Verbrauchsmaterial (Toner, Tinte, Trommel, ...) einen Sensor anlegen.
     for marker in printer.markers:
         entities.append(IPPAdvancedMarkerSensor(coordinator, entry, marker.marker_id))
+
+    # Seitenzähler-Sensoren: nicht jeder Drucker meldet diese IPP-Attribute
+    # (printer-pages-completed etc.) - "supported" listet genau die
+    # Zähler auf, die der Drucker überhaupt liefert (auch wenn der
+    # aktuelle Wert zufällig None ist). Nur anlegen, was der Drucker beim
+    # ersten Poll tatsächlich unterstützt, analog zu den Marker-Sensoren
+    # oben.
+    counters = printer.counters
+    if "pages_completed" in counters.supported:
+        entities.append(IPPAdvancedPagesCompletedSensor(coordinator, entry))
+    if "full-color" in counters.impressions_completed_col:
+        entities.append(IPPAdvancedColorPagesCompletedSensor(coordinator, entry))
+    if "monochrome" in counters.impressions_completed_col:
+        entities.append(IPPAdvancedMonochromePagesCompletedSensor(coordinator, entry))
 
     async_add_entities(entities)
 
@@ -204,3 +219,105 @@ class IPPAdvancedLastBootSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEnti
         if printer is not None:
             return printer.booted_at
         return self._restored_value
+
+
+class IPPAdvancedPageCounterSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEntity):
+    """Basisklasse für die Seitenzähler-Sensoren (gesamt/Farbe/S-W).
+
+    Wird nur angelegt, wenn der jeweilige Drucker das zugehörige
+    IPP-Attribut überhaupt meldet (siehe async_setup_entry oben) - manche
+    Drucker unterstützen z.B. keine Aufschlüsselung nach Farbe.
+    """
+
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(
+        self,
+        coordinator: IPPAdvancedDataUpdateCoordinator,
+        entry: ConfigEntry,
+        unique_suffix: str,
+        translation_key: str,
+        icon: str,
+    ) -> None:
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_{unique_suffix}"
+        self._attr_translation_key = translation_key
+        self._attr_icon = icon
+        self._restored_value: int | None = None
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        if (last_state := await self.async_get_last_state()) is not None:
+            try:
+                self._restored_value = int(last_state.state)
+            except (TypeError, ValueError):
+                self._restored_value = None
+
+    def _counter_value(self, printer) -> int | None:
+        raise NotImplementedError
+
+    @property
+    def native_value(self) -> int | None:
+        printer = self.coordinator.data.printer
+        if printer is not None:
+            value = self._counter_value(printer)
+            if value is not None:
+                return value
+        return self._restored_value
+
+
+class IPPAdvancedPagesCompletedSensor(IPPAdvancedPageCounterSensor):
+    """Sensor für die Gesamtzahl der vom Drucker ausgegebenen Seiten."""
+
+    def __init__(
+        self,
+        coordinator: IPPAdvancedDataUpdateCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        super().__init__(
+            coordinator, entry, "pages_completed", "pages_completed", "mdi:file-document-multiple"
+        )
+
+    def _counter_value(self, printer) -> int | None:
+        return printer.counters.pages_completed
+
+
+class IPPAdvancedColorPagesCompletedSensor(IPPAdvancedPageCounterSensor):
+    """Sensor für die Anzahl der in Farbe gedruckten Seiten."""
+
+    def __init__(
+        self,
+        coordinator: IPPAdvancedDataUpdateCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        super().__init__(
+            coordinator,
+            entry,
+            "impressions_completed_full_color",
+            "impressions_completed_full_color",
+            "mdi:palette",
+        )
+
+    def _counter_value(self, printer) -> int | None:
+        return printer.counters.impressions_completed_col.get("full-color")
+
+
+class IPPAdvancedMonochromePagesCompletedSensor(IPPAdvancedPageCounterSensor):
+    """Sensor für die Anzahl der in Schwarz/Weiß gedruckten Seiten."""
+
+    def __init__(
+        self,
+        coordinator: IPPAdvancedDataUpdateCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        super().__init__(
+            coordinator,
+            entry,
+            "impressions_completed_monochrome",
+            "impressions_completed_monochrome",
+            "mdi:palette-outline",
+        )
+
+    def _counter_value(self, printer) -> int | None:
+        return printer.counters.impressions_completed_col.get("monochrome")
