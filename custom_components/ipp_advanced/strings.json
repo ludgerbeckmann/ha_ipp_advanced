@@ -82,6 +82,15 @@
       },
       "last_boot": {
         "name": "Letzter Start"
+      },
+      "pages_completed": {
+        "name": "Gesamtseiten"
+      },
+      "impressions_completed_full_color": {
+        "name": "Farbseiten"
+      },
+      "impressions_completed_monochrome": {
+        "name": "Schwarz/Weiß-Seiten"
       }
     }
   }

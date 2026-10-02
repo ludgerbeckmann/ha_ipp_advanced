@@ -13,17 +13,34 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
-from pyipp.models import Info, Marker, Printer, State
+from pyipp.models import Counters, Info, Marker, Printer, State
 
 from custom_components.ipp_advanced.coordinator import IPPAdvancedData
 from custom_components.ipp_advanced.sensor import (
+    IPPAdvancedColorPagesCompletedSensor,
     IPPAdvancedLastBootSensor,
     IPPAdvancedMarkerSensor,
+    IPPAdvancedMonochromePagesCompletedSensor,
+    IPPAdvancedPagesCompletedSensor,
     IPPAdvancedPrinterStateSensor,
 )
 
 
-def _make_printer(state: str = "idle", reasons=None, message=None) -> Printer:
+def _make_counters(
+    pages_completed: int | None = None,
+    impressions_completed_col: dict | None = None,
+) -> Counters:
+    return Counters(
+        impressions_completed=None,
+        impressions_completed_col=impressions_completed_col or {},
+        pages_completed=pages_completed,
+        media_sheets_completed=None,
+    )
+
+
+def _make_printer(
+    state: str = "idle", reasons=None, message=None, counters: Counters | None = None
+) -> Printer:
     return Printer(
         info=Info(
             name="Test Printer",
@@ -35,6 +52,7 @@ def _make_printer(state: str = "idle", reasons=None, message=None) -> Printer:
             serial="ABC123",
             version="1.2.3",
         ),
+        counters=counters or _make_counters(),
         markers=[
             Marker(
                 marker_id=1,
@@ -146,6 +164,7 @@ def test_marker_sensor_treats_negative_level_as_unknown():
     # Prozentwerts.
     printer = Printer(
         info=Info(name="Test", printer_name="test", printer_uri_supported=[], uptime=100),
+        counters=_make_counters(),
         markers=[
             Marker(
                 marker_id=1,
@@ -194,3 +213,46 @@ def test_marker_sensor_falls_back_to_restored_value_when_printer_missing():
     assert sensor.name == "Schwarz"
     assert sensor.native_value == "37"
     assert sensor.extra_state_attributes == {}
+
+
+def test_pages_completed_sensor_reports_counter_value():
+    printer = _make_printer(counters=_make_counters(pages_completed=123))
+    sensor = IPPAdvancedPagesCompletedSensor(_make_coordinator(printer), _make_entry())
+
+    assert sensor.native_value == 123
+    assert sensor.state_class == SensorStateClass.TOTAL_INCREASING
+
+
+def test_pages_completed_sensor_falls_back_to_restored_value_when_printer_missing():
+    coordinator = _make_coordinator(printer=None)
+    sensor = IPPAdvancedPagesCompletedSensor(coordinator, _make_entry())
+    sensor._restored_value = 99
+
+    assert sensor.native_value == 99
+
+
+def test_color_pages_sensor_reads_full_color_key():
+    printer = _make_printer(
+        counters=_make_counters(impressions_completed_col={"full-color": 7, "monochrome": 3})
+    )
+    sensor = IPPAdvancedColorPagesCompletedSensor(_make_coordinator(printer), _make_entry())
+
+    assert sensor.native_value == 7
+
+
+def test_monochrome_pages_sensor_reads_monochrome_key():
+    printer = _make_printer(
+        counters=_make_counters(impressions_completed_col={"full-color": 7, "monochrome": 3})
+    )
+    sensor = IPPAdvancedMonochromePagesCompletedSensor(_make_coordinator(printer), _make_entry())
+
+    assert sensor.native_value == 3
+
+
+def test_color_pages_sensor_returns_none_when_printer_does_not_report_color():
+    # Drucker, der zwar Seiten zaehlt, aber keine Aufschluesselung nach
+    # Farbe liefert (z.B. ein reiner S/W-Laserdrucker).
+    printer = _make_printer(counters=_make_counters(impressions_completed_col={}))
+    sensor = IPPAdvancedColorPagesCompletedSensor(_make_coordinator(printer), _make_entry())
+
+    assert sensor.native_value is None

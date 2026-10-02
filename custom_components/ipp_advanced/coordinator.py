@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from pyipp import IPP, IPPConnectionError, IPPConnectionUpgradeRequired, IPPError
-from pyipp.models import Info, Marker, Printer, State, Uri
+from pyipp.models import Counters, Info, Marker, Printer, State, Uri
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -49,10 +49,24 @@ def _printer_to_storage(printer: Printer) -> dict[str, Any]:
 
 
 def _printer_from_storage(data: dict[str, Any]) -> Printer:
-    """Gegenstück zu _printer_to_storage()."""
+    """Gegenstück zu _printer_to_storage().
+
+    "counters" fehlt in Store-Dateien, die vor der Umstellung auf aioipp
+    geschrieben wurden - für solche Altbestände wird ein leerer Zähler
+    angenommen (siehe pages_completed-Sensoren in sensor.py, die dann
+    beim nächsten erfolgreichen Poll des Druckers ohnehin frische Werte
+    erhalten).
+    """
     booted_at = data["booted_at"]
+    counters_data = data.get("counters") or {}
     return Printer(
         info=Info(**data["info"]),
+        counters=Counters(
+            impressions_completed=counters_data.get("impressions_completed"),
+            impressions_completed_col=counters_data.get("impressions_completed_col", {}),
+            pages_completed=counters_data.get("pages_completed"),
+            media_sheets_completed=counters_data.get("media_sheets_completed"),
+        ),
         markers=[Marker(**marker) for marker in data["markers"]],
         state=State(**data["state"]),
         uris=[Uri(**uri) for uri in data["uris"]],

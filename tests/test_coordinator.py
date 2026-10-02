@@ -12,12 +12,13 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 from pyipp import IPPConnectionError
-from pyipp.models import Info, Marker, Printer, State
+from pyipp.models import Counters, Info, Marker, Printer, State
 import pytest
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from custom_components.ipp_advanced.coordinator import (
     IPPAdvancedDataUpdateCoordinator,
+    _printer_from_storage,
     _printer_to_storage,
 )
 
@@ -29,6 +30,12 @@ def _make_printer(state: str = "idle") -> Printer:
             printer_name="test",
             printer_uri_supported=[],
             uptime=100,
+        ),
+        counters=Counters(
+            impressions_completed=None,
+            impressions_completed_col={},
+            pages_completed=42,
+            media_sheets_completed=None,
         ),
         markers=[
             Marker(
@@ -130,3 +137,25 @@ async def test_first_ever_failure_raises_update_failed():
 
     with pytest.raises(UpdateFailed):
         await coordinator._async_update_data()
+
+
+def test_printer_storage_roundtrip_keeps_counters():
+    printer = _make_printer()
+    stored = _printer_to_storage(printer)
+    restored = _printer_from_storage(stored)
+
+    assert restored.counters.pages_completed == 42
+
+
+def test_printer_from_storage_defaults_counters_for_old_cache_files():
+    """Store-Dateien, die vor der Umstellung auf aioipp geschrieben wurden,
+    haben noch keinen "counters"-Schluessel - das darf beim Laden nicht
+    mit einem KeyError abbrechen (siehe _printer_from_storage)."""
+    printer = _make_printer()
+    stored = _printer_to_storage(printer)
+    del stored["counters"]
+
+    restored = _printer_from_storage(stored)
+
+    assert restored.counters.pages_completed is None
+    assert restored.counters.impressions_completed_col == {}
