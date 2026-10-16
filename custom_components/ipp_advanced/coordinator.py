@@ -26,6 +26,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .const import DEFAULT_BASE_PATH, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER
 
@@ -39,6 +40,11 @@ class IPPAdvancedData:
     printer: Printer
     available: bool
     last_update_success: bool
+    # Zeitpunkt des letzten *erfolgreichen* Live-Polls - anders als
+    # printer.booted_at (wann der Drucker zuletzt neu gestartet ist) hält
+    # das fest, wann die Integration ihn zuletzt tatsächlich erreicht hat.
+    # Wird NICHT aktualisiert, wenn gerade nur der Cache ausgeliefert wird.
+    last_seen: datetime | None = None
 
 
 def _printer_to_storage(printer: Printer) -> dict[str, Any]:
@@ -46,6 +52,14 @@ def _printer_to_storage(printer: Printer) -> dict[str, Any]:
     data = printer.as_dict()
     data["booted_at"] = printer.booted_at.isoformat() if printer.booted_at else None
     return data
+
+
+def _state_to_storage(printer: Printer, last_seen: datetime | None) -> dict[str, Any]:
+    """Kompletten zwischenzuspeichernden Zustand (Printer + last_seen) bauen."""
+    return {
+        "printer": _printer_to_storage(printer),
+        "last_seen": last_seen.isoformat() if last_seen else None,
+    }
 
 
 def _printer_from_storage(data: dict[str, Any]) -> Printer:
@@ -115,6 +129,8 @@ class IPPAdvancedDataUpdateCoordinator(DataUpdateCoordinator[IPPAdvancedData]):
 
         # Hier landet der letzte erfolgreich gelesene Printer-Datensatz.
         self._last_printer: Printer | None = None
+        # Zeitpunkt des letzten erfolgreichen Live-Polls (siehe IPPAdvancedData).
+        self._last_seen: datetime | None = None
         self._consecutive_failures = 0
         self._store: Store[dict[str, Any]] = Store(
             hass, STORAGE_VERSION, f"{DOMAIN}_{host}_printer"
@@ -158,7 +174,15 @@ class IPPAdvancedDataUpdateCoordinator(DataUpdateCoordinator[IPPAdvancedData]):
         if stored is None:
             return
         try:
-            self._last_printer = _printer_from_storage(stored)
+            if "printer" in stored:
+                self._last_printer = _printer_from_storage(stored["printer"])
+                last_seen = stored.get("last_seen")
+                self._last_seen = datetime.fromisoformat(last_seen) if last_seen else None
+            else:
+                # Store-Datei aus der Zeit vor "Letzte Verbindung" - enthielt
+                # den Printer direkt auf oberster Ebene, last_seen gab es
+                # noch nicht.
+                self._last_printer = _printer_from_storage(stored)
         except Exception:  # noqa: BLE001 - z.B. altes/inkompatibles Datenformat
             LOGGER.debug(
                 "Zwischengespeicherter Druckerzustand für %s ist ungültig",
@@ -190,6 +214,7 @@ class IPPAdvancedDataUpdateCoordinator(DataUpdateCoordinator[IPPAdvancedData]):
                     printer=self._last_printer,
                     available=True,
                     last_update_success=False,
+                    last_seen=self._last_seen,
                 )
 
             # Noch nie erfolgreich Daten geholt -> es gibt nichts zum Zwischenspeichern.
@@ -203,5 +228,11 @@ class IPPAdvancedDataUpdateCoordinator(DataUpdateCoordinator[IPPAdvancedData]):
 
         self._consecutive_failures = 0
         self._last_printer = printer
-        await self._store.async_save(_printer_to_storage(printer))
-        return IPPAdvancedData(printer=printer, available=True, last_update_success=True)
+        self._last_seen = dt_util.utcnow()
+        await self._store.async_save(_state_to_storage(printer, self._last_seen))
+        return IPPAdvancedData(
+            printer=printer,
+            available=True,
+            last_update_success=True,
+            last_seen=self._last_seen,
+        )

@@ -58,8 +58,10 @@ und Host/IP des Druckers eingeben. Für jeden Drucker separat wiederholen.
 - Ein Sensor pro Verbrauchsmaterial (z. B. `sensor.drucker_wohnzimmer_toner_schwarz`)
   mit Füllstand in %
 - Ein Status-Sensor pro Drucker (`idle` / `printing` / `stopped` / `unreachable`)
-- Ein Sensor für den Zeitpunkt des letzten bekannten Starts des Druckers
-  ("Letzter Start")
+- Ein Sensor für den Zeitpunkt der letzten erfolgreichen Verbindung zum
+  Drucker ("Letzte Verbindung") - der frühere Zeitpunkt des letzten
+  bekannten Neustarts ("Letzter Start") bleibt als Zusatzattribut
+  `last_boot` an dieser Entity erhalten
 - Seitenzähler-Sensoren ("Gesamtseiten", "Farbseiten", "Schwarz/Weiß-Seiten"):
   werden nur angelegt, wenn der jeweilige Drucker die zugehörigen
   IPP-Zählerattribute überhaupt meldet - bei Druckern ohne diese

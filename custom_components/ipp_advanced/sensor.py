@@ -26,7 +26,7 @@ async def async_setup_entry(
     printer = coordinator.data.printer
     entities: list[SensorEntity] = [
         IPPAdvancedPrinterStateSensor(coordinator, entry),
-        IPPAdvancedLastBootSensor(coordinator, entry),
+        IPPAdvancedLastConnectionSensor(coordinator, entry),
     ]
 
     # Für jedes Verbrauchsmaterial (Toner, Tinte, Trommel, ...) einen Sensor anlegen.
@@ -178,25 +178,26 @@ class IPPAdvancedPrinterStateSensor(IPPAdvancedBaseEntity, RestoreEntity, Sensor
         }
 
 
-class IPPAdvancedLastBootSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEntity):
-    """Sensor für den Zeitpunkt des letzten bekannten Starts des Druckers.
+class IPPAdvancedLastConnectionSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEntity):
+    """Sensor für den Zeitpunkt der letzten erfolgreichen Verbindung zum Drucker.
 
-    "Letzter Start" statt "Letzter Neustart" im Namen - Letzteres klingt so,
-    als liefe der Drucker gerade; der Wert bleibt aber unverändert stehen,
-    solange der Drucker nicht erreichbar ist (siehe printer_state, das dann
-    "unreachable" zeigt).
+    Hieß früher "Letzter Start" und zeigte printer.booted_at an - das war
+    irreführend: Ein Drucker, der seit Tagen ausgeschaltet ist, hat dort
+    trotzdem einen "vor X gestarteten"-Zeitpunkt stehen, obwohl er in
+    Wirklichkeit seit dem letzten Poll-Erfolg gar nicht mehr erreichbar
+    war. "Letzte Verbindung" zeigt stattdessen, wann der Drucker zuletzt
+    tatsächlich geantwortet hat (coordinator.last_seen, nur bei einem
+    echten Live-Poll aktualisiert - nicht beim Zurückfallen auf den
+    Cache). Der alte booted_at-Wert bleibt als Zusatzattribut erhalten.
 
-    Ein Timestamp-Sensor statt einer laufenden Sekundenzahl - das ist auch
-    der Ansatz von Home Assistants eigenen system_monitor-/uptime-
-    Integrationen ("Last Boot"). Der Wert ändert sich nur, wenn der Drucker
-    tatsächlich neu startet (statt bei jedem Poll), und Home Assistant
-    zeigt ihn im Frontend automatisch als relative Zeit an (z.B. "vor 3
-    Tagen") - auch für sehr lange Laufzeiten besser lesbar als ein
-    Sekundenwert.
+    Gleiche unique_id wie zuvor "Letzter Start" (nur Name/Bedeutung
+    geändert) - so bleiben Entity-Historie und Langzeitstatistik dieser
+    Entity erhalten, statt eine neue anzulegen und die alte verwaist
+    zurückzulassen.
     """
 
-    _attr_translation_key = "last_boot"
-    _attr_icon = "mdi:restart"
+    _attr_translation_key = "last_connection"
+    _attr_icon = "mdi:lan-connect"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     def __init__(
@@ -215,10 +216,17 @@ class IPPAdvancedLastBootSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEnti
 
     @property
     def native_value(self) -> datetime | None:
-        printer = self.coordinator.data.printer
-        if printer is not None:
-            return printer.booted_at
+        last_seen = self.coordinator.data.last_seen
+        if last_seen is not None:
+            return last_seen
         return self._restored_value
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        printer = self.coordinator.data.printer
+        if printer is None:
+            return {}
+        return {"last_boot": printer.booted_at}
 
 
 class IPPAdvancedPageCounterSensor(IPPAdvancedBaseEntity, RestoreEntity, SensorEntity):
