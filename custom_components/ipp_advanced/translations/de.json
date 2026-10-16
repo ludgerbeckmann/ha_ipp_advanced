@@ -80,8 +80,8 @@
           "unreachable": "Nicht erreichbar"
         }
       },
-      "last_boot": {
-        "name": "Letzter Start"
+      "last_connection": {
+        "name": "Letzte Verbindung"
       },
       "pages_completed": {
         "name": "Gesamtseiten"

@@ -18,7 +18,7 @@ from pyipp.models import Counters, Info, Marker, Printer, State, Status
 from custom_components.ipp_advanced.coordinator import IPPAdvancedData
 from custom_components.ipp_advanced.sensor import (
     IPPAdvancedColorPagesCompletedSensor,
-    IPPAdvancedLastBootSensor,
+    IPPAdvancedLastConnectionSensor,
     IPPAdvancedMarkerSensor,
     IPPAdvancedMonochromePagesCompletedSensor,
     IPPAdvancedPagesCompletedSensor,
@@ -79,10 +79,17 @@ def _make_printer(
     )
 
 
-def _make_coordinator(printer: Printer | None, last_update_success: bool = True) -> MagicMock:
+def _make_coordinator(
+    printer: Printer | None,
+    last_update_success: bool = True,
+    last_seen: datetime | None = None,
+) -> MagicMock:
     coordinator = MagicMock()
     coordinator.data = IPPAdvancedData(
-        printer=printer, available=True, last_update_success=last_update_success
+        printer=printer,
+        available=True,
+        last_update_success=last_update_success,
+        last_seen=last_seen,
     )
     return coordinator
 
@@ -196,20 +203,32 @@ def test_marker_sensor_treats_negative_level_as_unknown():
     assert sensor.native_value is None
 
 
-def test_last_boot_sensor_reports_booted_at_as_timestamp():
-    booted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+def test_last_connection_sensor_reports_last_seen_as_timestamp():
+    last_seen = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     printer = _make_printer()
-    printer.booted_at = booted_at
-    coordinator = _make_coordinator(printer)
-    sensor = IPPAdvancedLastBootSensor(coordinator, _make_entry())
+    coordinator = _make_coordinator(printer, last_seen=last_seen)
+    sensor = IPPAdvancedLastConnectionSensor(coordinator, _make_entry())
 
-    assert sensor.native_value == booted_at
+    assert sensor.native_value == last_seen
     assert sensor.device_class == SensorDeviceClass.TIMESTAMP
 
 
-def test_last_boot_sensor_falls_back_to_restored_value_when_printer_missing():
-    coordinator = _make_coordinator(printer=None)
-    sensor = IPPAdvancedLastBootSensor(coordinator, _make_entry())
+def test_last_connection_sensor_exposes_booted_at_as_attribute():
+    booted_at = datetime(2025, 6, 1, 9, 0, 0, tzinfo=timezone.utc)
+    printer = _make_printer()
+    printer.booted_at = booted_at
+    coordinator = _make_coordinator(printer, last_seen=datetime(2026, 1, 1, tzinfo=timezone.utc))
+    sensor = IPPAdvancedLastConnectionSensor(coordinator, _make_entry())
+
+    assert sensor.extra_state_attributes == {"last_boot": booted_at}
+
+
+def test_last_connection_sensor_falls_back_to_restored_value_when_last_seen_missing():
+    # Weder ein frischer Poll noch ein Cache-Treffer liegen vor (last_seen
+    # ist None) - z.B. direkt nach einem HA-Neustart, bevor der erste Poll
+    # dieser Coordinator-Instanz durchgelaufen ist.
+    coordinator = _make_coordinator(printer=None, last_seen=None)
+    sensor = IPPAdvancedLastConnectionSensor(coordinator, _make_entry())
     restored = datetime(2025, 12, 31, 8, 0, 0, tzinfo=timezone.utc)
     sensor._restored_value = restored
 
