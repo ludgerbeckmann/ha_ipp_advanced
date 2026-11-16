@@ -1,0 +1,97 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Drucker verbinden",
+        "data": {
+          "host": "Host / IP-Adresse",
+          "port": "Port",
+          "base_path": "IPP Base Path",
+          "ssl": "TLS verwenden",
+          "verify_ssl": "SSL-Zertifikat prüfen",
+          "scan_interval": "Abfrageintervall (Sekunden)"
+        }
+      },
+      "reconfigure": {
+        "title": "Drucker neu konfigurieren",
+        "data": {
+          "host": "Host / IP-Adresse",
+          "port": "Port",
+          "base_path": "IPP Base Path",
+          "ssl": "TLS verwenden",
+          "verify_ssl": "SSL-Zertifikat prüfen"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zum Drucker fehlgeschlagen. Prüfe, ob er eingeschaltet und über IPP erreichbar ist.",
+      "connection_upgrade": "Verbindung erfordert IPP-over-TLS (Port 631 ggf. mit ssl: true versuchen)."
+    },
+    "abort": {
+      "already_configured": "Dieser Drucker ist bereits konfiguriert.",
+      "reconfigure_successful": "Die Verbindungseinstellungen wurden aktualisiert.",
+      "unique_id_mismatch": "Diese Adresse gehört zu einem anderen Drucker als dem ursprünglich konfigurierten."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "IPP Advanced Optionen",
+        "data": {
+          "scan_interval": "Abfrageintervall (Sekunden)"
+        },
+        "sections": {
+          "notifications": {
+            "name": "Benachrichtigungen",
+            "data": {
+              "notify_reasons": "Bei welchen Problemen benachrichtigen?",
+              "notify_marker_low_threshold": "Schwellwert für die Tinte/Toner-Warnung",
+              "notify_targets": "Push-Benachrichtigungsziele",
+              "notify_persistent": "Dauerhafte Benachrichtigung in Home Assistant anzeigen"
+            },
+            "data_description": {
+              "notify_marker_low_threshold": "Ab welchem Füllstand (%) die oben ausgewählte \"Tinte/Toner Warnung\" ausgelöst wird."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "notify_reason": {
+      "options": {
+        "marker_empty": "Tinte/Toner leer",
+        "marker_low": "Tinte/Toner Warnung",
+        "media_empty": "Papier leer",
+        "media_jam": "Papierstau",
+        "cover_open": "Abdeckung offen",
+        "printer_stopped": "Drucker gestoppt (Fehler)",
+        "printer_unreachable": "Drucker nicht erreichbar"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "printer_state": {
+        "state": {
+          "idle": "Leerlauf",
+          "printing": "Druckt",
+          "stopped": "Gestoppt",
+          "unreachable": "Nicht erreichbar"
+        }
+      },
+      "last_connection": {
+        "name": "Letzte Verbindung"
+      },
+      "pages_completed": {
+        "name": "Gesamtseiten"
+      },
+      "impressions_completed_full_color": {
+        "name": "Farbseiten"
+      },
+      "impressions_completed_monochrome": {
+        "name": "Schwarz/Weiß-Seiten"
+      }
+    }
+  }
+}
